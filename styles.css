@@ -1,6 +1,7 @@
 :root {
   --bg: #0f1115; --panel: #181b22; --panel2: #20242d; --text: #eef0f4;
   --muted: #9097a3; --line: #2b303b; --accent: #d9a441; --danger: #e05252; --radius: 14px;
+  --parchment: #e6dcc3; --font-heading: "Alegreya SC", Georgia, serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -19,7 +20,7 @@ input { font: inherit; }
 h1 { margin: 0 0 4px; font-size: 2rem; }
 .sub { color: var(--accent); margin: 0 0 24px; font-weight: 600; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
-.card h2, .card h3 { margin: 0 0 10px; font-size: .95rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.card h2, .card h3 { margin: 0 0 10px; font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; letter-spacing: .02em; color: var(--parchment); }
 .muted { color: var(--muted); font-size: .9rem; margin: 6px 0; }
 .error { color: #ff8a8a; }
 .row { display: flex; gap: 8px; }
@@ -63,6 +64,12 @@ label input { display: block; width: 100%; margin-top: 6px; }
 /* TV board */
 .tv { height: 100vh; display: flex; flex-direction: column; padding: 2vh 2vw; gap: 1.5vh; }
 .tv-head { display: flex; align-items: center; gap: 2vw; }
+@font-face { font-family: "Alegreya SC"; src: url("alegreya-sc-700.woff2?v=1") format("woff2"); font-weight: 700; font-display: swap; } /* SIL Open Font License, see alegreya-sc-OFL.txt */
+/* Headings, the turn button and player names use Alegreya SC; everything you read or scan mid-game stays in the system font */
+.head-row > b, .p-name, .tp-head b, .rsrc, #tour .tour-pop h3, .btn[data-a="end"], .btn[data-a="start"] { font-family: var(--font-heading); font-weight: 700; letter-spacing: .02em; }
+.head-row > b { font-size: 1.15em; }
+.btn.small[data-a="end"], .btn.small[data-a="start"] { font-size: 1.05rem; }
+.p-name .turn-tag { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: 0; }
 @font-face { font-family: "New Rocker"; src: url("new-rocker.woff2?v=1") format("woff2"); font-display: swap; } /* SIL Open Font License, see new-rocker-OFL.txt */
 .brand { font-weight: 800; font-size: clamp(18px, 2.2vw, 36px); }
 .brand-name, .home h1 { font-family: "New Rocker", Georgia, serif; font-weight: 400; letter-spacing: .01em; }
