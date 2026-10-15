@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261015e";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015e";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015e";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015e";
+import { firebaseConfig } from "./config.js?v=20261015f";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015f";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015f";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015f";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -742,7 +742,7 @@ async function resetGame(code) {
 }
 
 // Shown on the home screen and controller so you can confirm which version is deployed
-const APP_VERSION = "2026.10.15e";
+const APP_VERSION = "2026.10.15f";
 
 // ---------- Home ----------
 function renderHome(msg = "") {
@@ -4702,7 +4702,7 @@ function startController(code, pid) {
       <div>🪦 ${n.from === me.name ? `<b>${esc(n.src)}</b>: you milled ${n.n} card${n.n === 1 ? "" : "s"}` : `<b>${esc(n.from)}</b>'s <b>${esc(n.src)}</b> put ${n.n} card${n.n === 1 ? "" : "s"} from your library into your graveyard`}. Which?</div>
       ${dig?.on && n.n ? `<div class="mini">🂠 Top ${Math.min(n.n, dig.lib.length)} of your digital library: <b>${esc(dig.lib.slice(0, n.n).join(", ") || "(empty)")}</b></div>
       <div class="row"><button class="btn small primary" data-a="ml-go" data-n="${nid}">Put them in the graveyard</button></div>` : `
-     <div class="row">${n.n > 6 ? `<div class="modes">${(deck?.cards || []).map((c, i) => [c, i]).sort((a, b) => a[0].n.localeCompare(b[0].n)).map(([c, i]) => `<label class="mode-check"><input type="checkbox" class="ml-box" data-n="${nid}" value="${i}"><span>${esc(dispName(c))}</span></label>`).join("")}</div>` : ""}${Array.from({ length: n.n > 6 ? 0 : n.n }, (_, j) => `<select class="fetch-pick ml-pick" data-n="${nid}">${(deck?.cards || []).map((c, i) => [c, i]).sort((a, b) => a[0].n.localeCompare(b[0].n)).map(([c, i]) => `<option value="${i}">${esc(dispName(c))}</option>`).join("")}</select>`).join("")}
+     <div class="row">${n.n > 6 ? `<div class="modes">${(deck?.cards || []).map((c, i) => [c, i]).sort((a, b) => a[0].n.localeCompare(b[0].n)).map(([c, i]) => `<label class="mode-check"><input type="checkbox" class="ml-box" data-n="${nid}" value="${i}"><span>${esc(dispName(c))}</span></label>`).join("")}</div>` : ""}${Array.from({ length: n.n > 6 ? 0 : n.n }, (_, j) => `<select class="fetch-pick ml-pick" data-n="${nid}"><option value="">Pick a card…</option>${(deck?.cards || []).map((c, i) => [c, i]).sort((a, b) => a[0].n.localeCompare(b[0].n)).map(([c, i]) => `<option value="${i}">${esc(dispName(c))}</option>`).join("")}</select>`).join("")}
         <button class="btn small primary" data-a="ml-go" data-n="${nid}">Add to graveyard</button><button class="btn small" data-a="ml-skip" data-n="${nid}">Skip</button></div>`}
     </div>` : n.kind === "count" ? `<div class="ask-box">
       <div>❓ <b>${esc(n.from)}</b>'s <b>${esc(n.src)}</b>: ${esc(n.text)}</div>
@@ -7237,7 +7237,7 @@ function startController(code, pid) {
         if (!n) break;
         // digital deck: the milled cards are simply the top of the library
         const picks = dig?.on ? (() => { const nm = dig.lib.splice(0, n.n || 0); digSave(); setTimeout(() => { try { renderHand(); } catch {} }, 0); return nm.map(x => deckCard(x) || lookupCard(x) || { n: x }); })()
-          : [...document.querySelectorAll(`.ml-pick[data-n="${nid}"]`), ...document.querySelectorAll(`.ml-box[data-n="${nid}"]:checked`)].map(x => deck?.cards[Number(x.value)]).filter(Boolean);
+          : [...document.querySelectorAll(`.ml-pick[data-n="${nid}"]`), ...document.querySelectorAll(`.ml-box[data-n="${nid}"]:checked`)].filter(x => x.value !== "").map(x => deck?.cards[Number(x.value)]).filter(Boolean);
         update(ref(db, `rooms/${code}/notes/${pid}`), { [nid]: null });
         const ids = [];
         act([], p => picks.forEach(c => { const gid = toZone(p, c, "gy"); if (gid) ids.push(gid); }));
