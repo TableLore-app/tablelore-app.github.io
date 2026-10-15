@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261015f";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015f";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015f";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015f";
+import { firebaseConfig } from "./config.js?v=20261015g";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015g";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015g";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015g";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -742,7 +742,7 @@ async function resetGame(code) {
 }
 
 // Shown on the home screen and controller so you can confirm which version is deployed
-const APP_VERSION = "2026.10.15f";
+const APP_VERSION = "2026.10.15g";
 
 // ---------- Home ----------
 function renderHome(msg = "") {
@@ -1295,7 +1295,7 @@ function startController(code, pid) {
     || Object.values(me?.bf || {}).find(e => e.n === name && e.o)
     || null;
   const undo = [], undoMeta = [], redo = [];
-  let actSeq = 0, actLabel = "", pendLog = null;
+  let actSeq = 0, actLabel = "", pendLog = null, digAtAct = null;
   let orderTriggers = (() => { try { return localStorage.getItem("mtga_order") !== "0"; } catch { return true; } })();
   let turnAlerts = (() => { try { return !!localStorage.getItem("mtga_alerts"); } catch { return false; } })();
   function turnAlert() {
@@ -1537,7 +1537,7 @@ function startController(code, pid) {
   // ----- State changes -----
   async function mutate(fn, merge = false) {
     if (!me) return;
-    if (!undo.length || (!merge && undoMeta.at(-1)?.seq !== actSeq)) { undo.push(clone(me)); undoExt.push(null); undoMeta.push({ seq: actSeq, label: actLabel, rem: clone(reminders || []), ...(pendLog?.seq === actSeq ? { log: pendLog.text } : {}) }); redo.length = 0; }
+    if (!undo.length || (!merge && undoMeta.at(-1)?.seq !== actSeq)) { undo.push(clone(me)); undoExt.push(null); undoMeta.push({ seq: actSeq, label: actLabel, rem: clone(reminders || []), dig: digAtAct?.seq === actSeq ? digAtAct.dig : (dig ? clone(dig) : null), ...(pendLog?.seq === actSeq ? { log: pendLog.text } : {}) }); redo.length = 0; }
     if (undo.length > 50) { undo.shift(); undoExt.shift(); undoMeta.shift(); }
     const next = clone(me);
     fn(next);
@@ -5238,7 +5238,7 @@ function startController(code, pid) {
     const prev = undo.pop();
     if (!prev) { toast("Nothing to undo."); return; }
     const ext = undoExt.pop(), meta = undoMeta.pop();
-    redo.push({ snap: clone(me), ext, meta, rem: clone(reminders) });
+    redo.push({ snap: clone(me), ext, meta, rem: clone(reminders), dig: dig ? clone(dig) : null });
     lifeSeen = prev.life ?? START_LIFE;
     if (ext?.loss) {
       const u = {};
@@ -5248,6 +5248,7 @@ function startController(code, pid) {
     clearPending();
     me = prev;
     if (meta?.rem) reminders = meta.rem;
+    if (meta?.dig && dig?.on) { dig = clone(meta.dig); digSave(); setTimeout(() => { try { renderHand(); } catch {} }, 0); } // the card goes back to the digital hand
     actSeq++;
     render();
     await set(ref(db, pPath), prev);
@@ -5257,10 +5258,11 @@ function startController(code, pid) {
   async function doRedo() {
     const r = redo.pop();
     if (!r) { toast("Nothing to redo."); return; }
-    undo.push(clone(me)); undoExt.push(r.ext); undoMeta.push({ ...r.meta, rem: clone(reminders) });
+    undo.push(clone(me)); undoExt.push(r.ext); undoMeta.push({ ...r.meta, rem: clone(reminders), dig: dig ? clone(dig) : null });
     lifeSeen = r.snap.life ?? START_LIFE;
     if (r.ext?.loss) { const u = {}; Object.entries(r.ext.loss).forEach(([oid, n]) => { u[`players/${oid}/life`] = (room.players?.[oid]?.life ?? START_LIFE) - n; }); update(ref(db, `rooms/${code}`), u); }
     me = r.snap; reminders = r.rem || reminders;
+    if (r.dig && dig?.on) { dig = clone(r.dig); digSave(); setTimeout(() => { try { renderHand(); } catch {} }, 0); }
     actSeq++;
     render();
     await set(ref(db, pPath), r.snap);
@@ -6899,7 +6901,7 @@ function startController(code, pid) {
     if (!b) return;
     const rr = b.dataset.id ? reminders.find(x => x.id === b.dataset.id) : null;
     activeCast = rr?.castKey && !["rem-dismiss", "unless-paid", "unless-no"].includes(b.dataset.a) ? rr.castKey : null;
-    if (!["undo", "redo", "expand", "tok-tapmenu", "tok-atkmenu", "tok-rm", "alerts", "rem-up", "mana-mode"].includes(b.dataset.a)) { actSeq++; actLabel = (b.textContent || b.dataset.a).replace(/\s+/g, " ").trim().slice(0, 40); }
+    if (!["undo", "redo", "expand", "tok-tapmenu", "tok-atkmenu", "tok-rm", "alerts", "rem-up", "mana-mode"].includes(b.dataset.a)) { actSeq++; actLabel = (b.textContent || b.dataset.a).replace(/\s+/g, " ").trim().slice(0, 40); digAtAct = { seq: actSeq, dig: dig ? clone(dig) : null }; } // digital hand/library as they were before this tap, for Undo
     actTargeting = /-go$/.test(b.dataset.a || "") || b.dataset.a === "rem-apply"; // a target picked for one of my spells/abilities (Valiant)
     try { onAction(e, b); } catch (err) { reportError(err, b.dataset.a); } finally { activeCast = null; setTimeout(() => { actTargeting = false; }, 0); }
   };
