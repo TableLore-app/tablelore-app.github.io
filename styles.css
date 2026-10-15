@@ -1,7 +1,7 @@
 :root {
   --bg: #0f1115; --panel: #181b22; --panel2: #20242d; --text: #eef0f4;
   --muted: #9097a3; --line: #2b303b; --accent: #d9a441; --danger: #e05252; --radius: 14px;
-  --parchment: #c9a45c; /* Old Gold: heading color, clearly apart from the white text */ --font-heading: "Alegreya SC", Georgia, serif;
+  --slate: #7a8fb5; /* Slate Blue: heading color, apart from the white text and the gold accent */ --font-heading: "Alegreya SC", Georgia, serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -20,7 +20,7 @@ input { font: inherit; }
 h1 { margin: 0 0 4px; font-size: 2rem; }
 .sub { color: var(--accent); margin: 0 0 24px; font-weight: 600; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
-.card h2, .card h3 { margin: 0 0 10px; font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; letter-spacing: .02em; color: var(--parchment); }
+.card h2, .card h3 { margin: 0 0 10px; font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem; letter-spacing: .02em; color: var(--slate); }
 .muted { color: var(--muted); font-size: .9rem; margin: 6px 0; }
 .error { color: #ff8a8a; }
 .row { display: flex; gap: 8px; }
