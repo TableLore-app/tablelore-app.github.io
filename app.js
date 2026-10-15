@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261015c";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015c";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015c";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015c";
+import { firebaseConfig } from "./config.js?v=20261015d";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015d";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015d";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015d";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -742,7 +742,7 @@ async function resetGame(code) {
 }
 
 // Shown on the home screen and controller so you can confirm which version is deployed
-const APP_VERSION = "2026.10.15c";
+const APP_VERSION = "2026.10.15d";
 
 // ---------- Home ----------
 function renderHome(msg = "") {
@@ -826,7 +826,7 @@ function startHost(code, watch = false) {
   app.innerHTML = `
   <div class="tv">
     <header class="tv-head">
-      <div class="brand">TableLore<span class="brand-tag">The table remembers.</span></div>
+      <div class="brand"><span class="brand-name">TableLore</span><span class="brand-tag">The table remembers.</span></div>
       <div class="turn" id="turnInfo"></div>
       <div class="join">
         <div id="qr"></div>

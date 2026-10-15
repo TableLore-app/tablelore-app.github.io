@@ -63,7 +63,11 @@ label input { display: block; width: 100%; margin-top: 6px; }
 /* TV board */
 .tv { height: 100vh; display: flex; flex-direction: column; padding: 2vh 2vw; gap: 1.5vh; }
 .tv-head { display: flex; align-items: center; gap: 2vw; }
+@font-face { font-family: "New Rocker"; src: url("new-rocker.woff2?v=1") format("woff2"); font-display: swap; } /* SIL Open Font License, see new-rocker-OFL.txt */
 .brand { font-weight: 800; font-size: clamp(18px, 2.2vw, 36px); }
+.brand-name, .home h1 { font-family: "New Rocker", Georgia, serif; font-weight: 400; letter-spacing: .01em; }
+.home h1 { font-size: 2.6rem; line-height: 1.05; }
+.brand-name { font-size: 1.3em; line-height: 1; }
 .brand-tag { display: block; font-weight: 500; font-style: italic; font-size: .42em; color: var(--muted, #9aa3b5); letter-spacing: .02em; margin-top: 2px; }
 .turn { flex: 1; text-align: center; font-size: clamp(16px, 2vw, 32px); color: var(--accent); font-weight: 700; }
 .join { display: flex; align-items: center; gap: 12px; }
