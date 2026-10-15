@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261015g";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015g";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015g";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015g";
+import { firebaseConfig } from "./config.js?v=20261015h";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015h";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015h";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015h";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -742,7 +742,7 @@ async function resetGame(code) {
 }
 
 // Shown on the home screen and controller so you can confirm which version is deployed
-const APP_VERSION = "2026.10.15g";
+const APP_VERSION = "2026.10.15h";
 
 // ---------- Home ----------
 function renderHome(msg = "") {
@@ -826,7 +826,7 @@ function startHost(code, watch = false) {
   app.innerHTML = `
   <div class="tv">
     <header class="tv-head">
-      <div class="brand"><span class="brand-name">TableLore</span><span class="brand-tag">The table remembers.</span></div>
+      <div class="brand"><span class="brand-name">TableLore</span><span class="brand-tag">The table remembers…</span></div>
       <div class="turn" id="turnInfo"></div>
       <div class="join">
         <div id="qr"></div>
@@ -903,7 +903,7 @@ function startHost(code, watch = false) {
         : "· everyone passed"}`;
     }
     { const tbb = document.getElementById("tbBtn"); if (tbb) tbb.hidden = !room.turnBack; }
-    turnInfo.textContent = tp ? `${tp.name}'s turn${room.turnNo ? ` · Round ${room.round || 1}` : ""}${room.airLock ? ` · 🌀 exile casting locked (${room.airLock.name})` : ""}` : "";
+    turnInfo.textContent = tp ? `${tp.name}'s Turn${room.turnNo ? ` · Round ${room.round || 1}` : ""}${room.airLock ? ` · 🌀 exile casting locked (${room.airLock.name})` : ""}` : "";
     logEl.innerHTML = Object.values(room.log || {}).sort((a, b) => b.t - a.t).slice(0, 6)
       .map(l => `<div>${esc(l.text)}</div>`).join("");
   };
@@ -946,9 +946,20 @@ function permChip(e, counts, owner, id) {
 }
 
 // Shrink each player's cards until everything fits inside their panel (big boards get smaller cards)
+// Card names on picture tiles: up to three lines; a name that needs more gets a smaller font until it fits
+function fitTileNames(root) {
+  root.querySelectorAll(".tslot.art .tcard .tc-name").forEach(el => {
+    if (el.closest(".tpile") && el.closest(".tslot") !== el.closest(".tpile").lastElementChild) return; // covered pile cards show one line
+    el.style.fontSize = ""; const cs = getComputedStyle(el); let fs = parseFloat(cs.fontSize) || 12;
+    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const over = () => (el.scrollHeight - pad) > fs * 1.12 * 3 + 1 || el.scrollWidth > el.clientWidth + 1; // too many lines, or one word wider than the card
+    for (let i = 0; i < 10 && fs > 7.5 && over(); i++) { fs -= 0.75; el.style.fontSize = fs + "px"; }
+    el.style.overflowWrap = over() ? "anywhere" : ""; // last resort on tiny tiles: break the long word
+  });
+}
 function fitTvCards(board) {
   board.classList.add("fitting"); // no width animations while measuring
-  try { fitTvCards0(board); } finally { void board.offsetWidth; board.classList.remove("fitting"); }
+  try { fitTvCards0(board); fitTileNames(board); } finally { void board.offsetWidth; board.classList.remove("fitting"); }
 }
 function fitTvCards0(board) {
   board.querySelectorAll(".panel.cardsview").forEach(panel => {
@@ -2112,6 +2123,13 @@ function startController(code, pid) {
     return "";
   }
   const zoneOpen = new Set();
+  function cmdZoneHtml() {
+    const inZone = (deck?.cmds || []).map((name, i) => [name, i]).filter(([name]) => !Object.values(me?.bf || {}).some(e => e.n === name));
+    if (!inZone.length) return "";
+    return `<section class="card"><h3>Command zone</h3>${inZone.map(([name, i]) => { const casts = me.tax?.[slug(name)] || 0;
+      return `<div class="counter"><span class="who">⭐ ${esc(name)} ${costHtml(deck.cards.find(c => c.n === name) || { n: name, m: "" }, casts * 2)}<span class="sub">${casts ? `Cast ${casts}× · next tax +${casts * 2}` : "Not cast yet"}</span></span>
+        <button class="btn small primary" data-a="cast-cmd" data-i="${i}">Cast${casts ? ` (+${casts * 2})` : ""}</button></div>`; }).join("")}</section>`;
+  }
   function zonesHtml() {
     const nowT = room.turnNo || 0;
     const opts = (deck?.cards || []).map((c, i) => [c, i]).sort((a, b) => a[0].n.localeCompare(b[0].n)).map(([c, i]) => `<option value="${i}">${esc(dispName(c))}</option>`).join("");
@@ -5798,6 +5816,7 @@ function startController(code, pid) {
         </details>
       </section>`; }).join("")}
     <p class="muted">Tap a picture to see the whole card. Updates live.</p>`;
+    requestAnimationFrame(() => { try { fitTileNames(el); } catch {} });
     el.querySelectorAll("details.tp-board").forEach(d => d.ontoggle = () => { if (d.open) tableClosed.delete(d.dataset.p); else tableClosed.add(d.dataset.p); });
   }
   let mullRule = store.get("mtga_mullrule") === "official" ? "official" : "free"; // free = redraw 7 and keep all (house rule)
@@ -5836,6 +5855,7 @@ function startController(code, pid) {
       <input id="digQ" type="search" class="full" placeholder="Search your library (tutor)…" autocomplete="off" value="${esc(q)}">
       ${libHits.map(n => `<div class="dig-row"><span>${esc(dispName(card(n)))}</span><div class="row"><button class="btn small" data-a="dig-tutor" data-n="${esc(n)}">✋ To hand</button><button class="btn small" data-a="dig-tutor-bf" data-n="${esc(n)}">▶ Onto battlefield</button></div></div>`).join("")}
     </section>
+    <div class="hand-zones">${tab === "hand" ? cmdZoneHtml() + zonesHtml() : ""}</div>
     <section class="card">
       <h3>Game</h3>
       <div class="row"><button class="btn" data-a="dig-new">🔄 New game: shuffle and draw 7</button><button class="btn" data-a="dig-mulligan">Mulligan</button></div>
@@ -5870,7 +5890,7 @@ function startController(code, pid) {
     if (sb) {
       const si = stepOf(room), mine = room.turn === pid;
       sb.className = turnP ? "step-bar" : "";
-      sb.innerHTML = turnP ? `<span class="step-who" style="--pc:${esc(turnP.color)}">${mine ? "Your turn" : `${esc(turnP.name)}'s turn`}${room.turnNo ? ` · Round ${room.round || 1}` : ""}</span>
+      sb.innerHTML = turnP ? `<span class="step-who" style="--pc:${esc(turnP.color)}"><span class="sw-turn">${mine ? "Your Turn" : `${esc(turnP.name)}'s Turn`}</span>${room.turnNo ? `<span class="sw-round">Round ${room.round || 1}</span>` : ""}</span>
         <span class="step-list">${STEPS.map((n, i) => `<span class="step ${i === si ? "on" : i < si ? "done" : ""}">${n}</span>`).join("")}</span>
         ${mine && (si === 3 || si === 4) ? `<button class="btn small step-next" data-a="extra-combat" title="Additional combat phase (Aggravated Assault, Genji Glove…)">↺ Combat</button>` : ""}
         ${celebrating(me) ? `<span class="chip" title="Two or more nonland permanents entered under your control this turn">🎉 Celebration</span>` : ""}${room.dn ? `<button class="btn small" data-a="dn-toggle" title="Day/night (tap to switch it yourself)">${room.dn === "night" ? "🌙 Night" : "☀ Day"}</button>` : ""}${mine && seated(room).some(o => Object.values(o.bf || {}).some(e => /\b(Plane|Phenomenon)\b/.test(e.t || ""))) ? `<button class="btn small" data-a="planar-open" title="Roll the planar die">🌀 Planar die</button>` : ""}${mine ? `<button class="btn small" data-a="free-roll" data-s="6" title="Roll a die">🎲 d6</button><button class="btn small" data-a="free-roll" data-s="20" title="Roll a d20">🎲 d20</button>` : ""}${mine ? (si < STEPS.length - 1 ? `<button class="btn small step-next" data-a="step-next">${STEPS[si + 1]} ▶</button>` : `<button class="btn small primary step-next" data-a="end">End turn ▶</button>`) : ""}` : "";
@@ -6176,19 +6196,8 @@ function startController(code, pid) {
         <p class="muted">"This turn" effects clear on their own when the turn passes. Tap an active effect to remove it.</p>
       </section>`;
 
-    // Board tab: command zone
-    cmdZone.innerHTML = deck?.cmds?.length ? `
-      <section class="card">
-        <h3>Command zone</h3>
-        ${deck.cmds.map((name, i) => {
-          const onBf = Object.values(me.bf || {}).some(e => e.n === name);
-          const casts = me.tax?.[slug(name)] || 0;
-          return `<div class="counter">
-            <span class="who">⭐ ${esc(name)} ${costHtml(deck.cards.find(c => c.n === name) || { n: name, m: "" }, casts * 2)}<span class="sub">${casts ? `Cast ${casts}× · next tax +${casts * 2}` : "Not cast yet"}</span></span>
-            ${onBf ? `<span class="pill">On battlefield</span>` : `<button class="btn small primary" data-a="cast-cmd" data-i="${i}">Cast${casts ? ` (+${casts * 2})` : ""}</button>`}
-          </div>`;
-        }).join("")}
-      </section>` : "";
+    // Board tab: command zone (a commander on the battlefield isn't in it)
+    cmdZone.innerHTML = cmdZoneHtml();
 
     // Board tab: battlefield
     const entries = Object.entries(me.bf || {});
@@ -6239,7 +6248,7 @@ function startController(code, pid) {
       <button class="btn small" data-a="phase-in">Phase in now</button>` : ""}</section>` : "") + (me.ring?.n ? `<section class="card ring-card">
       <h3>💍 The Ring has tempted you ×${me.ring.n}</h3>
       <p class="mini">Ring-bearer: <b>${ringBearer(me) ? esc(ringBearer(me).name) : "none (choose one the next time the Ring tempts you)"}</b></p>
-      <ol class="mini ring-list">${RING_LEVELS.slice(0, ringLevel(me)).map(t => `<li>${esc(t)}</li>`).join("")}</ol></section>` : "") + zonesHtml();
+      <ol class="mini ring-list">${RING_LEVELS.slice(0, ringLevel(me)).map(t => `<li>${esc(t)}</li>`).join("")}</ol></section>` : "") + (tab === "hand" ? "" : zonesHtml());
 
     // Board tab: tokens
     const toks = Object.entries(me.tokens || {});
@@ -6909,7 +6918,7 @@ function startController(code, pid) {
     const a = b.dataset.a;
     { const r0 = b.dataset.id && reminders.find(x => x.id === b.dataset.id); targetSrcColors = r0 ? remSrcColors(r0) : null; }
     if (a === "wide" || a === "wide-yes" || a === "wide-no") { wide = a === "wide" ? !wide : a === "wide-yes"; store.set("mtga_layout", wide ? "wide" : "phone"); applyWide(); applyTab(); render(); return; }
-    if (a === "tab") { tab = b.dataset.tab; store.set("mtga_tab", tab); applyTab(); if (tab === "table") renderTable(); return; }
+    if (a === "tab") { tab = b.dataset.tab; store.set("mtga_tab", tab); applyTab(); if (tab !== "hand") document.querySelectorAll(".hand-zones").forEach(x => { x.innerHTML = ""; }); if (tab === "table") renderTable(); else render(); return; }
     if (a === "tview") { const o = room.players?.[b.dataset.o], x = o?.bf?.[b.dataset.id]; if (x && !x.fd) showCard(lookupCard(x.n) || x); return; }
     if (a === "tview-tok") { const o = room.players?.[b.dataset.o], t = o?.tokens?.[b.dataset.k]; if (t) showCard({ n: `${t.name} ×${t.count}`, t: t.desc ? `Token: ${t.desc}` : "Token", o: "", img: tokenArt(t) }); return; }
     if (a === "tour") { startTour(); return; }

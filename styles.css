@@ -1,7 +1,7 @@
 :root {
   --bg: #0f1115; --panel: #181b22; --panel2: #20242d; --text: #eef0f4;
   --muted: #9097a3; --line: #2b303b; --accent: #d9a441; --danger: #e05252; --radius: 14px;
-  --parchment: #e6dcc3; --font-heading: "Alegreya SC", Georgia, serif;
+  --parchment: #c9a45c; /* Old Gold: heading color, clearly apart from the white text */ --font-heading: "Alegreya SC", Georgia, serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -76,7 +76,7 @@ label input { display: block; width: 100%; margin-top: 6px; }
 .home h1 { font-size: 2.6rem; line-height: 1.05; }
 .brand-name { font-size: 1.3em; line-height: 1; }
 .brand-tag { display: block; font-weight: 500; font-style: italic; font-size: .42em; color: var(--muted, #9aa3b5); letter-spacing: .02em; margin-top: 2px; }
-.turn { flex: 1; text-align: center; font-size: clamp(16px, 2vw, 32px); color: var(--accent); font-weight: 700; }
+.turn { flex: 1; text-align: center; font-size: clamp(18px, 2.3vw, 36px); color: var(--accent); font-family: var(--font-heading); font-weight: 700; letter-spacing: .02em; }
 .join { display: flex; align-items: center; gap: 12px; }
 #qr { background: #fff; padding: 6px; border-radius: 8px; line-height: 0; }
 #qr img, #qr canvas { width: 88px; height: 88px; }
@@ -346,8 +346,10 @@ textarea { resize: vertical; font-size: .9rem; }
 .att-tag { font-size: 11px; padding: 1px 7px; border-radius: 8px; border: 1px solid #7fb0e0; color: #7fb0e0; white-space: nowrap; }
 /* Turn step tracker under the tabs */
 .step-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; padding: 6px 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; font-size: .8rem; }
-.step-who { font-weight: 700; border-left: 4px solid var(--pc); padding-left: 6px; }
-.step-list { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; }
+.step-who { font-weight: 700; border-left: 4px solid var(--pc); padding-left: 6px; display: inline-flex; flex-direction: column; line-height: 1.15; }
+.sw-turn { font-family: var(--font-heading); font-size: 1.1em; letter-spacing: .02em; }
+.sw-round { font-size: .78em; font-weight: 600; color: var(--muted); }
+.step-list { display: flex; gap: 3px; flex-wrap: wrap; flex: 1 1 150px; min-width: 0; }
 .step { padding: 2px 6px; border-radius: 6px; color: var(--muted); }
 .step.done { opacity: .55; }
 .step.on { background: var(--accent); color: #1a1405; font-weight: 700; }
@@ -517,7 +519,7 @@ textarea { resize: vertical; font-size: .9rem; }
 .tslot.art { --cw: calc(var(--ch) * 0.716); }
 .tslot.art .tcard { border-radius: 8px; border: 2px solid rgba(255, 255, 255, .12); }
 .tslot.art .tcard img { object-position: center 30%; }
-.tslot.art .tcard .tc-name { display: block; position: absolute; left: 0; right: 0; top: 0; padding: 3% 6% 8%; font-weight: 800; font-size: max(10px, calc(var(--ch) * .095)); line-height: 1.12; color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px #000; background: linear-gradient(rgba(0, 0, 0, .85), rgba(0, 0, 0, 0)); white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.tslot.art .tcard .tc-name { display: block; position: absolute; left: 0; right: 0; top: 0; padding: 3% 6% 8%; font-weight: 800; font-size: max(10px, calc(var(--ch) * .095)); line-height: 1.12; color: #fff; text-shadow: 0 1px 3px #000, 0 0 6px #000; background: linear-gradient(rgba(0, 0, 0, .85), rgba(0, 0, 0, 0)); white-space: normal; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; padding-bottom: 0; background: linear-gradient(rgba(0, 0, 0, .88) 72%, rgba(0, 0, 0, 0)); }
 .tslot.art .tcard.noimg .tc-name, .tslot.art .tcard.token .tc-name { position: static; background: none; white-space: normal; padding: 0; }
 .tslot.art .tc-pt { font-size: max(11px, calc(var(--ch) * .13)); }
 .tslot.art .tc-tags { top: auto; bottom: 4%; left: 50%; transform: translateX(-50%); }
@@ -597,3 +599,6 @@ body.wide .side-table { display: grid; grid-template-columns: repeat(auto-fit, m
 body.wide .side-table > * { margin: 0; min-width: 0; }
 body.wide .side-table > :not(.tpanel) { grid-column: 1 / -1; }
 @media (max-width: 900px) { body.wide .side-table { display: block; } }
+
+/* hand tab: command zone, graveyard and exile under the library */
+.hand-zones:empty { display: none; }
