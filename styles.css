@@ -70,12 +70,21 @@ label input { display: block; width: 100%; margin-top: 6px; }
 .head-row > b { font-size: 1.15em; }
 .btn.small[data-a="end"], .btn.small[data-a="start"] { font-size: 1.05rem; }
 .p-name .turn-tag { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; letter-spacing: 0; }
-@font-face { font-family: "New Rocker"; src: url("new-rocker.woff2?v=1") format("woff2"); font-display: swap; } /* SIL Open Font License, see new-rocker-OFL.txt */
-.brand { font-weight: 800; font-size: clamp(18px, 2.2vw, 36px); }
-.brand-name, .home h1 { font-family: "New Rocker", Georgia, serif; font-weight: 400; letter-spacing: .01em; }
-.home h1 { font-size: 2.6rem; line-height: 1.05; }
-.brand-name { font-size: 1.3em; line-height: 1; }
-.brand-tag { display: block; font-weight: 500; font-style: italic; font-size: .42em; color: var(--muted, #9aa3b5); letter-spacing: .02em; margin-top: 2px; }
+@font-face { font-family: "Cinzel Decorative"; src: url("cinzel-decorative-700.woff2?v=1") format("woff2"); font-weight: 700; font-display: swap; } /* SIL Open Font License, see cinzel-decorative-OFL.txt */
+/* Brand: Triggernomicon wordmark in Cinzel Decorative, letters spaced so the flourishes don't collide; tagline in Alegreya SC, Slate Blue */
+.brand-name, .home h1 { font-family: "Cinzel Decorative", Georgia, serif; font-weight: 700; letter-spacing: .07em; color: var(--accent); white-space: nowrap; }
+.wm-big { font-size: 1.3em; }
+.tome { color: var(--accent); flex: none; display: block; }
+.home-brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 4px 0 22px; }
+.home-brand .tome { width: 76px; height: auto; margin-bottom: 14px; }
+.home h1 { font-size: min(32px, calc((100vw - 44px) / 12.8)); line-height: 1; margin: 0; }
+.home-brand .sub { font-family: var(--font-heading); font-weight: 700; color: var(--slate); text-transform: uppercase; letter-spacing: .14em; font-size: .9rem; margin: 12px 0 0; }
+.brand { display: flex; align-items: center; gap: .45em; font-size: clamp(16px, 1.8vw, 30px); }
+.brand .tome { width: 1.5em; height: auto; }
+.brand-name { display: block; font-size: 1em; line-height: 1; }
+.brand-tag { display: block; font-family: var(--font-heading); font-weight: 700; font-size: .42em; color: var(--slate); text-transform: uppercase; letter-spacing: .14em; margin-top: 5px; }
+.fan-note { font-size: .7rem; line-height: 1.45; color: var(--muted); opacity: .75; text-align: center; margin: 6px 4px 0; }
+.fan-note a { color: inherit; }
 .turn { flex: 1; text-align: center; font-size: clamp(18px, 2.3vw, 36px); color: var(--accent); font-family: var(--font-heading); font-weight: 700; letter-spacing: .02em; }
 .join { display: flex; align-items: center; gap: 12px; }
 #qr { background: #fff; padding: 6px; border-radius: 8px; line-height: 0; }

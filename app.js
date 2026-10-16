@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261015i";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261015i";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261015i";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261015i";
+import { firebaseConfig } from "./config.js?v=20261016a";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016a";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016a";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016a";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -742,15 +742,19 @@ async function resetGame(code) {
 }
 
 // Shown on the home screen and controller so you can confirm which version is deployed
-const APP_VERSION = "2026.10.15i";
+const APP_VERSION = "2026.10.16a";
+
+// Brand: the clasped tome emblem (original art) and the Triggernomicon wordmark
+const TOME_SVG = `<svg class="tome" viewBox="0 0 100 118" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M18 6 H88 a4 4 0 0 1 4 4 V104 a4 4 0 0 1 -4 4 H18 a10 10 0 0 1 -10 -10 V16 a10 10 0 0 1 10 -10Z"/><path d="M8 98 a10 10 0 0 1 10 -10 H92" stroke-width="2"/><line x1="20" y1="7" x2="20" y2="88" stroke-width="2"/><path d="M92 50 H100 V64 H92" stroke-width="2.6"/><path d="M80 6 L92 6 L92 18" stroke-width="2"/><path d="M80 88 L92 88 L92 76" stroke-width="2"/><g stroke-width="1.6"><line x1="56.0" y1="25.5" x2="56.0" y2="19.0"/><line x1="62.2" y1="23.8" x2="63.2" y2="20.0"/><line x1="68.0" y1="26.2" x2="70.0" y2="22.8"/><line x1="71.2" y1="31.8" x2="75.8" y2="27.2"/><line x1="76.8" y1="35.0" x2="80.2" y2="33.0"/><line x1="79.2" y1="40.8" x2="83.0" y2="39.8"/><line x1="77.5" y1="47.0" x2="84.0" y2="47.0"/><line x1="79.2" y1="53.2" x2="83.0" y2="54.2"/><line x1="76.8" y1="59.0" x2="80.2" y2="61.0"/><line x1="71.2" y1="62.2" x2="75.8" y2="66.8"/><line x1="68.0" y1="67.8" x2="70.0" y2="71.2"/><line x1="62.2" y1="70.2" x2="63.2" y2="74.0"/><line x1="56.0" y1="68.5" x2="56.0" y2="75.0"/><line x1="49.8" y1="70.2" x2="48.8" y2="74.0"/><line x1="44.0" y1="67.8" x2="42.0" y2="71.2"/><line x1="40.8" y1="62.2" x2="36.2" y2="66.8"/><line x1="35.2" y1="59.0" x2="31.8" y2="61.0"/><line x1="32.8" y1="53.2" x2="29.0" y2="54.2"/><line x1="34.5" y1="47.0" x2="28.0" y2="47.0"/><line x1="32.8" y1="40.8" x2="29.0" y2="39.8"/><line x1="35.2" y1="35.0" x2="31.8" y2="33.0"/><line x1="40.8" y1="31.8" x2="36.2" y2="27.2"/><line x1="44.0" y1="26.2" x2="42.0" y2="22.8"/><line x1="49.8" y1="23.8" x2="48.8" y2="20.0"/></g><circle cx="56" cy="47" r="20" stroke-width="1.4"/></g><path fill="currentColor" d="M56 32 C57.24 42.05 59.00 44.00 71 47 C59.00 50.00 57.24 51.95 56 62 C54.76 51.95 53.00 50.00 41 47 C53.00 44.00 54.76 42.05 56 32Z"/></svg>`;
+const WORDMARK = `<span class="wm-big">T</span>RIGGERNOMICON`;
+const FAN_NOTE = `Triggernomicon is unofficial Fan Content permitted under the <a href="https://company.wizards.com/en/legal/fancontentpolicy" target="_blank" rel="noopener">Fan Content Policy</a>. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. Card data and images from <a href="https://scryfall.com" target="_blank" rel="noopener">Scryfall</a>.`;
 
 // ---------- Home ----------
 function renderHome(msg = "") {
   app.onclick = null;
   app.innerHTML = `
   <div class="home">
-    <h1>TableLore</h1>
-    <p class="sub">Play the game. We'll keep the lore.</p>
+    <div class="home-brand">${TOME_SVG}<h1 aria-label="Triggernomicon">${WORDMARK}</h1><p class="sub">Never miss a trigger</p></div>
     ${msg ? `<p class="error">${esc(msg)}</p>` : ""}
     <section class="card">
       <h2>Join a game</h2>
@@ -765,6 +769,7 @@ function renderHome(msg = "") {
       <button id="hostBtn" class="btn wide">Create a room</button>
     </section>
     <p class="ver">Version ${APP_VERSION}</p>
+    <p class="fan-note">${FAN_NOTE}</p>
   </div>`;
   document.getElementById("joinForm").onsubmit = e => {
     e.preventDefault();
@@ -826,7 +831,7 @@ function startHost(code, watch = false) {
   app.innerHTML = `
   <div class="tv">
     <header class="tv-head">
-      <div class="brand"><span class="brand-name">TableLore</span><span class="brand-tag">The table remembers…</span></div>
+      <div class="brand">${TOME_SVG}<div><span class="brand-name" aria-label="Triggernomicon">${WORDMARK}</span><span class="brand-tag">Never miss a trigger</span></div></div>
       <div class="turn" id="turnInfo"></div>
       <div class="join">
         <div id="qr"></div>
@@ -1313,7 +1318,7 @@ function startController(code, pid) {
     if (!turnAlerts) return;
     try { navigator.vibrate?.([250, 120, 250]); } catch {}
     try { playTurnChime(); } catch {}
-    try { if (document.hidden && "Notification" in window && Notification.permission === "granted") new Notification("🃏 Your turn", { body: `Round ${room?.round || 1} — it's your turn in TableLore.`, tag: "mtga-turn" }); } catch {}
+    try { if (document.hidden && "Notification" in window && Notification.permission === "granted") new Notification("🃏 Your turn", { body: `Round ${room?.round || 1} — it's your turn in Triggernomicon.`, tag: "mtga-turn" }); } catch {}
     try { const t0 = document.title; let k = 0; const iv = setInterval(() => { document.title = k++ % 2 ? t0 : "🔔 Your turn!"; if (k > 12 || !document.hidden) { clearInterval(iv); document.title = t0; } }, 800); } catch {}
   }
   const undoExt = []; // opponent life changes made alongside each undo step
@@ -1451,7 +1456,7 @@ function startController(code, pid) {
   // ----- Quick tour (first join; replay any time from 🎓 Tutorial) -----
   // mtga_tour: unset = show on first join, "seen" = don't auto-show, "always" = show on every join
   const TOUR = () => [
-    { h: "Welcome to TableLore 👋", b: "Your phone is your controller: life, cards and triggers live here, and the TV shows everyone's board. This quick tour shows you around. It takes about a minute." },
+    { h: "Welcome to Triggernomicon 👋", b: "Your phone is your controller: life, cards and triggers live here, and the TV shows everyone's board. This quick tour shows you around. It takes about a minute." },
     { sel: '#ctlHead [data-a="start"], #ctlHead [data-a="end"], #ctlHead .banner', h: "Turns", b: "Whoever goes first taps <b>Start game: I go first</b>. After that, this button says <b>End turn</b> when it's your turn, so the app knows when upkeep, combat and end-step triggers happen." },
     { sel: "#ctlHead .head-row", h: "Top bar", b: "📜 <b>Log</b> shows everything that's happened this game. Tap 🂠 <b>Drew</b> when you draw an <i>extra</i> card from a spell or ability, so draw triggers fire. You don't need it for your draw step: the app counts that draw automatically when your turn starts. Your life is always shown on the right." },
     { tab: "life", sel: '.tabs [data-tab="life"]', h: "Life tab", b: "Your life total, player counters and commander damage. Every change you make here shows up on the TV." },
