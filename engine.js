@@ -1659,6 +1659,7 @@ export function runEvents(p, events, ctx, { enabled = true, lookup, env = null, 
           const epw = () => { const x = evx.id && p.bf?.[evx.id]; if (x) return (Number(x.p) || 0) + (x.c?.p1p1 || 0) - (x.c?.m1m1 || 0); return Number((String(evx.list?.[0]?.desc || "").match(/^(\d+)\//) || [])[1]) || 0; };
           ctx.remind.push({ src: label(s.e), srcId: s.id, text: t.text, times, effs: (t.effs || []).map(f => f.k === "ping" && f.n?.enterPow ? { ...f, n: epw() } : f.k === "ping" && f.n?.evAmt ? { ...f, n: evx.amt || 1 } : f), count, choice: t.choice, modes: t.modes, pick: t.pick, ...(evx.type === "gainlife" ? { evN: evx.n } : {}), ...(t.note ? { note: t.note } : {}), who: ev.by || ev.active || null,
             ...(ev.type === "oppcast" && /same mana value/i.test(t.text) ? { sameMv: { mv: manaValue(ev.card?.m || ""), name: ev.card?.n } } : {}),
+            ...(/where X is that spell's mana value/i.test(t.text) && ev.card ? { xVal: manaValue(ev.card.m || ""), xWhy: `${ev.card.n}'s mana value` } : {}),
             ...(t.effs?.some(f => f.k === "copySpell") && ev.card ? { evCard: ev.card } : {}),
             ...(t.effs?.some(f => f.k === "attachNew") ? { ent: ev.type === "enters" ? { id: ev.id, name: ev.card?.n } : ev.type === "tokens" ? { toks: ev.list.filter(b => !t.cond.types || t.cond.types.some(x => tokenIs(b.name, x))).map(b => b.name) } : null } : {}) });
         }
