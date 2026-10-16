@@ -75,6 +75,7 @@ label input { display: block; width: 100%; margin-top: 6px; }
 .brand-name, .home h1 { font-family: "Cinzel Decorative", Georgia, serif; font-weight: 700; letter-spacing: .07em; color: var(--accent); white-space: nowrap; }
 .wm-big { font-size: 1.3em; }
 .tome { color: var(--accent); flex: none; display: block; }
+.tome .emb { color: var(--slate); } /* the dial and spark on the cover take the tagline color */
 .home-brand { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 4px 0 22px; }
 .home-brand .tome { width: 76px; height: auto; margin-bottom: 14px; }
 .home h1 { font-size: min(32px, calc((100vw - 44px) / 12.8)); line-height: 1; margin: 0; }
