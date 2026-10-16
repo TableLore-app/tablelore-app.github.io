@@ -742,6 +742,9 @@ async function resetGame(code) {
 }
 
 // Shown on the home screen and controller so you can confirm which version is deployed
+// Selfless Squire / Willbreaker trigger text (used by the card buttons and the trigger hooks)
+const SQUIRE_RE = /^(?:[^—\n]{1,40} — )?whenever damage that would be dealt to you is prevented, put that many \+1\/\+1 counters on (?:this creature|[^.]+)\.?$/im;
+const WILLB_RE = /^(?:[^—\n]{1,40} — )?whenever a creature an opponent controls becomes the target of a spell or ability you control, gain control of that creature/im;
 const APP_VERSION = "2026.10.16a";
 
 // Brand: the clasped tome emblem (original art) and the Triggernomicon wordmark
@@ -3920,6 +3923,41 @@ function startController(code, pid) {
     return { label: dispName(e), events: [{ type: "sac", name: e.n, n: 1, token: false, creature: cre, artifact: /\bArtifact\b/.test(e.t || "") }, ...(cre ? [{ type: "dies", n: 1, token: false, ids: [id] }] : [])],
       apply: p => { const x = p.bf?.[id]; if (!x) return; delete p.bf[id]; toZone(p, x, "gy"); } };
   }
+  // Selfless Squire: "Whenever damage that would be dealt to you is prevented, put that many +1/+1 counters on this creature"
+  function squirePrevented(n, why) {
+    if (!(n > 0) || !me) return;
+    Object.entries(me.bf || {}).filter(([, x]) => SQUIRE_RE.test(x.o || lookupCard(x.n)?.o || "")).forEach(([id, x]) =>
+      act([{ type: "effects", effs: [{ k: "countersOn", target: { kind: "bf", id }, n, key: "p1p1", label: "+1/+1" }], times: 1, count: 1, src: `${dispName(x)} (${n} damage prevented${why ? `: ${why}` : ""})`, srcId: id }]));
+  }
+  // Willbreaker: "Whenever a creature an opponent controls becomes the target of a spell or ability you control, gain control of that creature …"
+  function willbreakerTargeted(oid, id, via) {
+    if (!me || oid === pid) return;
+    const tgt = room?.players?.[oid]?.bf?.[id];
+    if (!tgt || !/\bCreature\b/.test(tgt.t || "")) return;
+    Object.values(me.bf || {}).filter(x => WILLB_RE.test(x.o || lookupCard(x.n)?.o || "")).forEach(x => {
+      if (reminders.some(r => r.wbk?.id === id && r.src === dispName(x))) return;
+      reminders.push({ id: newId(), src: dispName(x), text: `${room.players[oid].name}'s ${dispName(tgt)} became the target of your ${via || "spell or ability"}: gain control of it for as long as you control ${dispName(x)}.`, times: 1, wbk: { oid, id } });
+    });
+    setTimeout(render, 0);
+  }
+  // A counter added by hand with +: if something would trigger, ask whether a spell or ability put it there
+  function counterAsk(id, k, d) {
+    const e = me?.bf?.[id];
+    if (!e || !(d > 0)) return;
+    const test = clone(me), te = test.bf?.[id]; if (!te) return;
+    te.c ||= {}; te.c[k] = Math.max(0, (te.c[k] || 0) - d); if (!te.c[k]) delete te.c[k];
+    const ctx = { logs: [], remind: [], drain: 0, who: me.name };
+    try { runEvents(test, [{ type: "effects", effs: [{ k: "countersOn", target: { kind: "bf", id }, n: d, key: k, label: counterLabel(k) }], times: 1, count: 1, src: "?" }], ctx, { enabled: true, lookup: lookupCard, env: boardEnv(), turnNo: room?.turnNo || 0 }); } catch (err) { return; }
+    const names = new Set([...ctx.remind.map(r => r.src), ...ctx.logs.slice(1).map(l => (l.match(/^\W*([^:]+):/) || [])[1]).filter(Boolean)].filter(x => x && x !== "?"));
+    Object.values(me.bf || {}).forEach(x => { if (/whenever you put one or more counters on a permanent or player/i.test(x.o || lookupCard(x.n)?.o || "")) names.add(dispName(x)); });
+    if (!names.size) return;
+    const have = reminders.find(r => r.ctrAsk?.id === id && r.ctrAsk.k === k);
+    const r = have || { id: newId(), src: dispName(e), times: 1, ctrAsk: { id, k, n: 0 } };
+    r.ctrAsk.n += d; r.ctrAsk.names = [...names];
+    r.text = `You added ${r.ctrAsk.n} ${counterLabel(k)} counter${r.ctrAsk.n === 1 ? "" : "s"} by hand. That triggers ${[...names].join(", ")}. Did a spell or ability put ${r.ctrAsk.n === 1 ? "it" : "them"} there?`;
+    if (!have) reminders.push(r);
+    render();
+  }
   // I put counters on something (a picked target): Generous Patron / Kros (a creature I don't control), All Will Be One (any permanent or player)
   function counterPutTriggers(list) {
     if (!me || !list?.length) return;
@@ -4279,6 +4317,7 @@ function startController(code, pid) {
     const n = (e.c?.[k] || 0) + d;
     if (n < 0) return;
     if (k === "lore" && d > 0) setTimeout(() => sagaCheck({ [id]: n - d }), 0);
+    else if (d > 0 && k !== "loyalty") setTimeout(() => counterAsk(id, k, d), 0);
     mutate(p => {
       const t = p.bf[id];
       t.c ||= {};
@@ -4354,6 +4393,7 @@ function startController(code, pid) {
   function sendOrders(byOwner, extra) {
     Object.entries(byOwner).forEach(([oid, order]) => {
       const o = { ...order, ...extra, by: pid, byName: me.name, at: Date.now() };
+      if (oid !== pid && o.how !== "steal") [...(o.targets || []), ...(o.effs || []).map(f => f.target).filter(Boolean)].filter(t => t.kind === "bf" && t.id).forEach(t => willbreakerTargeted(oid, t.id, o.src));
       if (oid === pid) executeOrder(o);
       else update(ref(db, `rooms/${code}/orders/${oid}`), { [newId()]: o });
     });
@@ -6075,6 +6115,9 @@ function startController(code, pid) {
                   return `<div class="mini">1. Choose up to ${f.n} (targets are picked before the sacrifice):</div><div class="ans-list">${gy.length ? gy.map(([id, e]) => `<label class="mode-check"><input type="checkbox" class="vic-box" data-rid="${r.id}" value="${id}"><span>${esc(dispName(e))}</span></label>`).join("") : `<span class="mini">No ${esc(f.what)} cards in your graveyard (in the app).</span>`}</div>
                     <div class="mini">2. Sacrifice:</div>${sac.length ? `<select class="fetch-pick" id="vic-s-${r.id}">${sac.map(o => `<option value="${o.v}">${esc(o.label)}</option>`).join("")}</select>` : `<span class="mini">Nothing to sacrifice, so nothing returns.</span>`}
                     <button class="btn small primary" data-a="vic-go" data-id="${r.id}" ${sac.length ? "" : "disabled"}>Resolve</button>`; })()
+              : r.ctrAsk ? `<button class="btn small primary" data-a="ca-yes" data-id="${r.id}">Yes, resolve the triggers</button><button class="btn small" data-a="ca-no" data-id="${r.id}">No, just adjusting</button>`
+              : r.wbk ? (r.wbk.id ? `<button class="btn small primary" data-a="wbk-go" data-id="${r.id}">Gain control</button>` : `<select class="fetch-pick" id="wbk-${r.id}">${opponents().filter(o => !isOut(o)).flatMap(o => Object.entries(o.bf || {}).filter(([, x]) => /\bCreature\b/.test(x.t || "")).map(([cid, x]) => `<option value="${esc(o.id)}|${esc(cid)}">${esc(o.name)}: ${esc(dispName(x))}</option>`)).join("")}</select><button class="btn small primary" data-a="wbk-go" data-id="${r.id}">Gain control</button>`)
+              : r.sqAsk ? `<label class="mini">Damage prevented <input type="number" min="1" class="x-input" id="sq-${r.id}" value="1"></label><button class="btn small primary" data-a="sq-go" data-id="${r.id}">Add counters</button>`
               : r.gainAsk ? `<button class="btn small primary" data-a="ga-yes" data-id="${r.id}">💚 Yes, I gained ${r.gainAsk} life</button><button class="btn small" data-a="ga-no" data-id="${r.id}">No, just a correction</button>`
               : r.tloseX ? `${r.tloseX === true ? `<label class="mini">X = <input type="number" min="0" class="x-input" id="tlx-${r.id}"></label>` : ""}${seated(room).filter(o => !isOut(o)).map(o => `<button class="btn small ${o.id === pid ? "" : "primary"}" data-a="tlx-go" data-id="${r.id}" data-o="${o.id}" style="border-left:4px solid ${esc(o.color)}">${esc(o.name)} loses${r.tloseX === true ? " X" : ` ${r.tloseX}`}</button>`).join("")}`
               : r.extort ? Array.from({ length: r.extort }, (_, i) => `<button class="btn small ${i ? "" : "primary"}" data-a="ext-go" data-id="${r.id}" data-n="${i + 1}">Paid {W/B}${i ? ` ×${i + 1}` : ""}</button>`).join("")
@@ -6934,6 +6977,8 @@ function startController(code, pid) {
           ${e.own ? `<button class="btn small primary" data-a="give-back" data-id="${id}">↩ Return to ${esc(e.own.name)}</button>` : ""}
           ${["Graveyard", "Sacrificed", "Exile", "Hand", ...(e.cmd ? ["Command zone"] : [])].map(d => `<button class="btn small" data-a="move" data-id="${id}" data-dest="${d}">${d}</button>`).join("")}
           <button class="btn small air-btn" data-a="airbend" data-id="${id}">🌀 Airbended</button>
+          ${WILLB_RE.test(e.o || lookupCard(e.n)?.o || "") ? `<button class="btn small" data-a="wbk-ask" data-id="${id}">🎯 I targeted an opponent's creature…</button>` : ""}
+          ${SQUIRE_RE.test(e.o || lookupCard(e.n)?.o || "") ? `<button class="btn small" data-a="sq-ask" data-id="${id}">🛡 Damage to me was prevented…</button>` : ""}
           ${/whenever (?:this creature|[^,\n]+?) is dealt (?:noncombat |combat )?damage, /i.test(e.o || lookupCard(e.n)?.o || "") || dmgWatchers(e).length ? `<button class="btn small" data-a="dealt-dmg" data-id="${id}">💥 It was dealt damage…</button>` : ""}
         </div>
       </div>` : ""}
@@ -7902,6 +7947,35 @@ function startController(code, pid) {
         reminders = reminders.filter(x => x !== r);
         if (b.dataset.a === "bla-yes") { bloodSkip += r.bloodAsk; mutate(p => { p.life = (p.life ?? START_LIFE) - r.bloodAsk; }); logTo(code, `🩸 ${r.src}: ${me.name} loses ${r.bloodAsk} more`); }
         else { const t = room.turnNo || 0; if (me.lifeLost?.t === t) mutate(p => { p.lifeLost.n = Math.max(0, (p.lifeLost.n || 0) - 0); }, true); render(); }
+        break;
+      }
+      case "ca-yes": case "ca-no": {
+        const r = reminders.find(x => x.id === b.dataset.id), a = r?.ctrAsk;
+        if (!a) break;
+        reminders = reminders.filter(x => x !== r);
+        if (b.dataset.a === "ca-no" || !me.bf?.[a.id]) { render(); break; }
+        // take the hand-added counters back off and put them on through the engine, so triggers (and doublers) resolve
+        mutate(p => { const x = p.bf?.[a.id]; if (!x) return; x.c ||= {}; x.c[a.k] = Math.max(0, (x.c[a.k] || 0) - a.n); if (!x.c[a.k]) delete x.c[a.k]; }, true);
+        counterPutTriggers([{ oid: pid, n: a.n }]);
+        act([{ type: "effects", effs: [{ k: "countersOn", target: { kind: "bf", id: a.id }, n: a.n, key: a.k, label: counterLabel(a.k) }], times: 1, count: 1, src: `${r.src} (a spell or ability)`, srcId: a.id }]);
+        break;
+      }
+      case "wbk-go": {
+        const r = reminders.find(x => x.id === b.dataset.id); if (!r?.wbk) break;
+        const [oid, id] = r.wbk.id ? [r.wbk.oid, r.wbk.id] : String(document.getElementById(`wbk-${r.id}`)?.value || "").split("|");
+        if (!oid || !id) break;
+        reminders = reminders.filter(x => x !== r);
+        sendOrders({ [oid]: {} }, { how: "steal", targets: [{ kind: "bf", id }], src: r.src, until: null });
+        logTo(code, `🎯 ${me.name}'s ${r.src}: gains control of ${room.players?.[oid]?.name || "?"}'s ${dispName(room.players?.[oid]?.bf?.[id] || {})}`);
+        render(); break;
+      }
+      case "wbk-ask": { const e = me.bf?.[b.dataset.id]; if (e) { reminders.push({ id: newId(), src: dispName(e), text: "Which opponent's creature did your spell or ability target?", times: 1, wbk: { id: null } }); render(); } break; }
+      case "sq-ask": { const e = me.bf?.[b.dataset.id]; if (e) { reminders.push({ id: newId(), src: dispName(e), srcId: b.dataset.id, text: "How much damage that would have been dealt to you was prevented?", times: 1, sqAsk: true }); render(); } break; }
+      case "sq-go": {
+        const r = reminders.find(x => x.id === b.dataset.id); if (!r?.sqAsk) break;
+        const n = Math.max(0, Number(document.getElementById(`sq-${r.id}`)?.value) || 0);
+        reminders = reminders.filter(x => x !== r);
+        if (n) squirePrevented(n, "by hand"); else render();
         break;
       }
       case "ga-yes": case "ga-no": {
@@ -9404,9 +9478,9 @@ function startController(code, pid) {
         update(ref(db, `rooms/${code}/notes/${pid}`), { [b.dataset.n]: null });
         if (!dmg) { logTo(code, `${me.name} took no damage from ${n.from}'s ${n.src}`); break; }
         const noPrev = seated(room).filter(o => !isOut(o)).flatMap(o => [...Object.values(o.bf || {}).filter(e => boardRules(e.o).some(r => r.kind === "noPrevent")).map(dispName), ...(o.turnFx?.noPrevent && o.turnFx.turnNo === (room.turnNo || 0) ? [o.turnFx.noPrevent] : [])])[0];
-        if (room.maze?.turnNo === (room.turnNo || 0) && !noPrev && !n.noncombat && (room.maze.list || []).some(m => m.oid === n.fromId && m.name === n.cardN)) { logTo(code, `🌀 ${n.from}'s ${n.src}: combat damage to ${me.name} prevented (Maze of Ith)`); break; }
-        if (room.fog?.turnNo === (room.turnNo || 0) && !noPrev && !n.noncombat && !(room.fog.oppsOf && n.fromId === room.fog.oppsOf) && !(room.fog.onlyName && n.cardN === room.fog.onlyName) && !(room.fog.except && new RegExp(`\\b${room.fog.except}`, "i").test(`${n.stats?.type || ""} ${n.src || ""} ${lookupCard(n.cardN || "")?.t || ""}`))) { logTo(code, `🌫 ${n.from}'s ${n.src}: combat damage to ${me.name} prevented (${room.fog.by}'s ${room.fog.src})`); break; }
-        if (me.prot?.all && !noPrev && !confirm(`${me.prot.src}: you have protection from everything, so this damage is prevented.\n\nTake it anyway?`)) { logTo(code, `🛡 ${me.name} took no damage from ${n.from}'s ${n.src} (${me.prot.src})`); break; }
+        if (room.maze?.turnNo === (room.turnNo || 0) && !noPrev && !n.noncombat && (room.maze.list || []).some(m => m.oid === n.fromId && m.name === n.cardN)) { logTo(code, `🌀 ${n.from}'s ${n.src}: combat damage to ${me.name} prevented (Maze of Ith)`); squirePrevented(dmg); break; }
+        if (room.fog?.turnNo === (room.turnNo || 0) && !noPrev && !n.noncombat && !(room.fog.oppsOf && n.fromId === room.fog.oppsOf) && !(room.fog.onlyName && n.cardN === room.fog.onlyName) && !(room.fog.except && new RegExp(`\\b${room.fog.except}`, "i").test(`${n.stats?.type || ""} ${n.src || ""} ${lookupCard(n.cardN || "")?.t || ""}`))) { logTo(code, `🌫 ${n.from}'s ${n.src}: combat damage to ${me.name} prevented (${room.fog.by}'s ${room.fog.src})`); squirePrevented(dmg); break; }
+        if (me.prot?.all && !noPrev && !confirm(`${me.prot.src}: you have protection from everything, so this damage is prevented.\n\nTake it anyway?`)) { logTo(code, `🛡 ${me.name} took no damage from ${n.from}'s ${n.src} (${me.prot.src})`); squirePrevented(dmg); break; }
         if (me.prot?.life) { // damage is dealt (not prevented), but the life total can't change
           const curC = n.cmdKey ? (me.cmd?.[n.cmdKey] || 0) : 0;
           if (n.cmdKey) mutate(p => { p.cmd ||= {}; p.cmd[n.cmdKey] = curC + dmg; });
@@ -9611,13 +9685,13 @@ function startController(code, pid) {
   };
 
   // "At the beginning of…" triggers. Only writes to the database if something actually changes.
-  function phaseEvents(list) {
+  function phaseEvents(list, when = "") {
     if (!me || !auto) return;
     const test = clone(me);
     const ctx = { logs: [], remind: [], drain: 0, who: me.name };
     runEvents(test, list, ctx, { enabled: true, lookup: lookupCard, env: boardEnv(), turnNo: room?.turnNo || 0 });
     if (ctx.logs.length || ctx.drain) act(list);
-    else if (ctx.remind.length) { ctx.remind.forEach(r => reminders.push(normalizeRem({ ...r, id: newId() }))); render(); }
+    else if (ctx.remind.length) { ctx.remind.forEach(r => { const x = normalizeRem({ ...r, id: newId() }); if (when) { if (x.text) x.text = `${when}: ${x.text[0].toLowerCase()}${x.text.slice(1)}`; else x.note = `${when}.`; } reminders.push(x); }); render(); }
   }
   const doneMsgs = new Set();
   let seenCasts = null; // casts already processed on this phone
@@ -10040,7 +10114,8 @@ function startController(code, pid) {
         reminders.push({ id: newId(), src: d.src, text: `Pay ${d.cost} now, or you lose the game.`, times: 1, pact: { id: did, cost: d.cost } }));
       if (mine && Object.keys(me.delayed || {}).length) render();
       if (mine && (me.rad || 0) > 0) { reminders.push({ id: newId(), src: "☢ Radiation", text: `Precombat main: mill ${me.rad} card${me.rad === 1 ? "" : "s"}. For each nonland card milled, ${Object.values(me.bf || {}).some(x => /you gain life rather than lose life from radiation/i.test(x.o || lookupCard(x.n)?.o || "")) ? "gain" : "lose"} 1 life and remove a rad counter.`, times: 1, radMill: me.rad }); setTimeout(render, 0); }
-      phaseEvents(["upkeep", "draw", "main1"].map(phase => ({ type: "phase", phase, mine, active: room.turn })));
+      // start-of-turn triggers come up together; the draw-step and main-phase ones say when they happen (Ripples of Undeath)
+      { const whose = mine ? "your" : `${room.players?.[room.turn]?.name || "their"}'s`; ["upkeep", "draw", "main1"].forEach(phase => phaseEvents([{ type: "phase", phase, mine, active: room.turn }], phase === "draw" ? `During ${whose} draw step` : phase === "main1" ? `During ${whose} first main phase` : "")); }
       if (mine && Object.values(me.bf || {}).some(e => /\bAttraction\b/.test(e.t || ""))) reminders.push({ id: newId(), src: "🎡 Attractions", text: "Precombat main: roll to visit your Attractions. Roll a six-sided die.", times: 1, visitRoll: true });
       if (me.riders) mutate(p => { delete p.riders; }, true);
       poolStepEnd(true, true);
