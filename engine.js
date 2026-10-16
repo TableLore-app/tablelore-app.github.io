@@ -675,6 +675,7 @@ function parseCond(cond, cardName) {
   if (/^(?:a|one or more) tokens? you control leaves? the battlefield$/.test(c)) return { ev: "tokleave", once: /one or more/.test(c) };
   if (c === `${short} becomes tapped` || c === `${cardName.split("#")[0].split(" // ")[0].toLowerCase()} becomes tapped` || /^this (creature|permanent|artifact|land) becomes tapped$/.test(c)) return { ev: "selftap" };
   if (/^you put one or more -1\/-1 counters on a creature$/.test(c)) return { ev: "m1m1put" };
+  if (/^(?:one or more |a )?-1\/-1 counters? (?:is|are) put on (?:a|one or more) creatures?$/.test(c)) return { ev: "m1m1put", check: true, askNote: "Fires on -1/-1 counters you put with the app; add any others by hand." }; // Flourishing Defenses, Wickersmith's Tools (your own counters; others' by hand)
   if (/^you discard (a|one or more) cards?$/.test(c)) return { ev: "discard", once: /one or more/.test(c) };
   if (/^an opponent discards (a|one or more) cards?$/.test(c)) return { ev: "oppdiscard", once: /one or more/.test(c) };
   if (c === `${short} dies` || c === `${cardName.split("#")[0].split(" // ")[0].toLowerCase()} dies` || /^this (creature|permanent) dies$/.test(c)) return { ev: "selfdies" };
@@ -709,7 +710,7 @@ function parseCond(cond, cardName) {
   if (m && !/\b(opponent|player)\b/.test(m[2])) return { ev: "typed", types: splitTypes(m[2].replace(/^nontoken /, "")), other: m[1] === "another" || !!m[3], once: m[1] === "one or more", ...(/^nontoken /.test(m[2]) ? { nontoken: true } : {}) };
   if (/one or more \+1\/\+1 counters are put on (?:a|one or more) (?:creature|permanent)s? you control/.test(c)) return { ev: "counters", once: /one or more (?:creature|permanent)s/.test(c) }; // Shalai and Hallar: "on a creature" triggers once per creature
   if (/^you commit a crime$/.test(c)) return { ev: "crime" };
-  { const om = c.match(/^one or more ([a-z]+?)s you control attack(?: a player| one or more players| an opponent)?$/); if (om && om[1] !== "creature") return { ev: "typedAtk", types: [om[1]], nontoken: false, other: false, oneOrMore: true }; }
+  { const om = c.match(/^one or more ([a-z]+?)s? you control attack(?: a player| one or more players| an opponent)?$/); if (om && om[1] !== "creature") return { ev: "typedAtk", types: [om[1]], nontoken: false, other: false, oneOrMore: true }; }
   { const aw = c.match(/^(a|an) ([a-z]+) attacks$/); if (aw && !["creature", "player", "opponent", "permanent", "token"].includes(aw[2]) && !c.startsWith(short)) return { ev: "typedAtk", types: [aw[2]], nontoken: false, other: false }; }
   { const ta = c.match(/^(a|an|another) ((?:nontoken |non-[a-z]+ )?[a-z]+(?: or [a-z]+)?) you control attacks$/); if (ta && !c.startsWith(short)) return { ev: "typedAtk", types: splitTypes(ta[2].replace(/^nontoken /, "")), nontoken: /nontoken/.test(ta[2]), other: ta[1] === "another" }; }
   if (/^a player sacrifices a permanent$/.test(c)) return { ev: "sac", what: "" };
@@ -728,8 +729,13 @@ function parseCond(cond, cardName) {
   if (m) m = [m[0], m[2], m[3], m[1]];
   if (m) return { ev: "cast", ...(/^your (second|third)$/.test(m[3] || "") && !m[1] ? { nth: { "your second": 2, "your third": 3 }[m[3]] } : {}), what: (m[1] || "").replace(/\s*from anywhere other than your hand/, ""), ...(m[2] ? { mvMin: Number(m[2]) } : {}), ...(/from anywhere other than your hand/.test(c) ? { notHand: true } : {}), ...(/\bspell from exile$/.test(c) ? { fromEx: true } : {}), ...(/\bspell from your graveyard$/.test(c) ? { fromGy: true } : {}) };
   // Spinneret and Spiderling: "whenever you attack with two or more Spiders"
-  m = c.match(/^you attack with (two|three|four|\d+) or more ([a-z ]+?)$/);
+  m = c.match(/^you attack with (two|three|four|five|six|seven|eight|\d+) or more ([a-z ]+?)$/);
   if (m) return { ev: "attackN", min: num(m[1]), types: splitTypes(m[2].replace(/\bcreatures?\b/, "").trim() || "creature") };
+  // Attack conditions the app can't check itself: a reminder with the condition spelled out (once per attack, or per qualifying attacker)
+  if (/^you attack with (?!(?:two|three|four|five|six|seven|eight|\d+) or more)/.test(c) || /^equipped creature and at least one other creature attack$/.test(c) || /^you attack (?:a player|the player|one of your opponents)\b/.test(c)) return { ev: "youattack", check: true, askNote: `Only if it applies: “whenever ${c}”.` }; // Ainok Strike Leader, Akiri, Loot Dispute
+  if (/^one or more [a-z0-9 ,/'+-]+? (?:you control )?attack(?: a player| one or more players| an opponent| one of your opponents)?$/.test(c) && !/opponents? controls?/.test(c)) return { ev: "youattack", check: true, askNote: `Only if it applies: “whenever ${c}”.` }; // Alibou, The Earth King
+  if (/^(?:a|an|another) [a-z ,/'+-]*?creature (?:you control )?(?:with|that's|that is|without) [^,]+? attacks(?: a player| one of your opponents| an opponent)?$/.test(c) || /^an? (?:enchanted|equipped|modified|legendary|token) [a-z ,'-]*?creature (?:or [a-z ]+ )?you control attacks$/.test(c) || /^(?:a|an|another) [a-z ,/'-]+? you control (?:with|that's) [^,]+? attacks$/.test(c))
+    return { ev: "attack", types: null, other: false, check: true, askNote: `Only for an attacker that fits: “whenever ${c}”.` }; // Duskana, MacCready, Tenured Inkcaster, Reyav, Kestia, Nahiri
   return null;
 }
 
@@ -885,7 +891,7 @@ export function parseAbilities(card) {
     if (/\.\s*otherwise,/i.test(text) && auto) { out.trig.push({ cond, text, effs, auto: false, partial, may, choice }); if (cond2) out.trig.push({ cond: cond2, text, effs, auto: false, partial, may, choice }); continue; }
     if (cond.minAtk) { out.trig.push({ cond, text, effs, auto: false, partial, may, choice, note: `Only if ${cond.minAtk} or more creatures attacked (${cond.anyPlayer ? "any player's attack — this only fires on yours" : "your attack"}).` }); continue; }
     if (cond.ev === "self-etb" && /\btoken, then attach this equipment to it\.?$/i.test(text)) continue; // Ancestral Blade: the app makes the token and attaches it
-    out.trig.push({ cond, text, effs, auto, partial, may, choice, ...(drawRest ? { drawRest } : {}), ...(emin ? { eminence: true } : {}) });
+    out.trig.push({ cond, text, effs, auto, partial, may, choice, ...(drawRest ? { drawRest } : {}), ...(emin ? { eminence: true } : {}), ...(cond.askNote ? { note: cond.askNote } : {}) });
     if (cond2) out.trig.push({ cond: cond2, text, effs, auto, partial, may, choice, ...(drawRest ? { drawRest } : {}) });
   }
   return out;

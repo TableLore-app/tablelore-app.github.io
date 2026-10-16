@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261016d";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016d";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016d";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016d";
+import { firebaseConfig } from "./config.js?v=20261016e";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016e";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016e";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016e";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -752,7 +752,7 @@ async function resetGame(code) {
 // Selfless Squire / Willbreaker trigger text (used by the card buttons and the trigger hooks)
 const SQUIRE_RE = /^(?:[^—\n]{1,40} — )?whenever damage that would be dealt to you is prevented, put that many \+1\/\+1 counters on (?:this creature|[^.]+)\.?$/im;
 const WILLB_RE = /^(?:[^—\n]{1,40} — )?whenever a creature an opponent controls becomes the target of a spell or ability you control, gain control of that creature/im;
-const APP_VERSION = "2026.10.16d";
+const APP_VERSION = "2026.10.16e";
 
 // Brand: the clasped tome emblem (original art) and the Triggernomicon wordmark
 const TOME_SVG = `<svg class="tome" viewBox="0 0 100 118" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M18 6 H88 a4 4 0 0 1 4 4 V104 a4 4 0 0 1 -4 4 H18 a10 10 0 0 1 -10 -10 V16 a10 10 0 0 1 10 -10Z"/><path d="M8 98 a10 10 0 0 1 10 -10 H92" stroke-width="2"/><line x1="20" y1="7" x2="20" y2="88" stroke-width="2"/><path d="M92 50 H100 V64 H92" stroke-width="2.6"/><path d="M80 6 L92 6 L92 18" stroke-width="2"/><path d="M80 88 L92 88 L92 76" stroke-width="2"/><g class="emb" stroke="currentColor" stroke-width="1.6"><line x1="56.0" y1="25.5" x2="56.0" y2="19.0"/><line x1="62.2" y1="23.8" x2="63.2" y2="20.0"/><line x1="68.0" y1="26.2" x2="70.0" y2="22.8"/><line x1="71.2" y1="31.8" x2="75.8" y2="27.2"/><line x1="76.8" y1="35.0" x2="80.2" y2="33.0"/><line x1="79.2" y1="40.8" x2="83.0" y2="39.8"/><line x1="77.5" y1="47.0" x2="84.0" y2="47.0"/><line x1="79.2" y1="53.2" x2="83.0" y2="54.2"/><line x1="76.8" y1="59.0" x2="80.2" y2="61.0"/><line x1="71.2" y1="62.2" x2="75.8" y2="66.8"/><line x1="68.0" y1="67.8" x2="70.0" y2="71.2"/><line x1="62.2" y1="70.2" x2="63.2" y2="74.0"/><line x1="56.0" y1="68.5" x2="56.0" y2="75.0"/><line x1="49.8" y1="70.2" x2="48.8" y2="74.0"/><line x1="44.0" y1="67.8" x2="42.0" y2="71.2"/><line x1="40.8" y1="62.2" x2="36.2" y2="66.8"/><line x1="35.2" y1="59.0" x2="31.8" y2="61.0"/><line x1="32.8" y1="53.2" x2="29.0" y2="54.2"/><line x1="34.5" y1="47.0" x2="28.0" y2="47.0"/><line x1="32.8" y1="40.8" x2="29.0" y2="39.8"/><line x1="35.2" y1="35.0" x2="31.8" y2="33.0"/><line x1="40.8" y1="31.8" x2="36.2" y2="27.2"/><line x1="44.0" y1="26.2" x2="42.0" y2="22.8"/><line x1="49.8" y1="23.8" x2="48.8" y2="20.0"/></g><circle class="emb" stroke="currentColor" cx="56" cy="47" r="20" stroke-width="1.4"/></g><path class="emb" fill="currentColor" d="M56 32 C57.24 42.05 59.00 44.00 71 47 C59.00 50.00 57.24 51.95 56 62 C54.76 51.95 53.00 50.00 41 47 C53.00 44.00 54.76 42.05 56 32Z"/></svg>`;
@@ -4517,6 +4517,19 @@ function startController(code, pid) {
   }
   const isIndestructible = (e, id) => /^(.*,\s*)?indestructible\b/im.test(e.o || lookupCard(e.n)?.o || "") || !!me.effects?.indestructible || !!e.c?.x_indestructible || kwsOf({ ...e, o: e.o || lookupCard(e.n)?.o }, pid, id).some(x => x.k === "indestructible");
   // Carry out an order on this phone's own board (from anyone, including yourself)
+  // Put back only what the order changed (a card, a token stack, life…), keeping everything that happened since
+  function revertParts(p, before, after) {
+    const same = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+    new Set([...Object.keys(before || {}), ...Object.keys(after || {})]).forEach(k => {
+      const b0 = before?.[k], a0 = after?.[k];
+      if (same(b0, a0)) return;
+      const objs = v => v && typeof v === "object" && !Array.isArray(v);
+      if (objs(b0) || objs(a0)) { const bo = objs(b0) ? b0 : {}, ao = objs(a0) ? a0 : {};
+        new Set([...Object.keys(bo), ...Object.keys(ao)]).forEach(sk => { if (same(bo[sk], ao[sk])) return; p[k] ||= {}; if (bo[sk] === undefined) delete p[k][sk]; else p[k][sk] = clone(bo[sk]); });
+        if (p[k] && objs(p[k]) && !Object.keys(p[k]).length) delete p[k];
+      } else if (b0 === undefined) delete p[k]; else p[k] = clone(b0);
+    });
+  }
   const orderSnaps = new Map(); // order key → my state just before it ran (for "put it back" after the sender undoes)
   function executeOrder(o) {
     if (o.how === "revertOrder") {
@@ -4524,7 +4537,9 @@ function startController(code, pid) {
       reminders.unshift({ id: newId(), src: `${o.byName} undid ${o.src}`, text: `Put your board back the way it was before ${o.src}?`, times: 1, revertKey: o.key });
       render(); return;
     }
-    if (o.key && o.by !== pid) { orderSnaps.set(o.key, { snap: clone(me), src: o.src }); if (orderSnaps.size > 30) orderSnaps.delete(orderSnaps.keys().next().value); }
+    if (o.by && o.by !== pid && o.how !== "airbend") try { targetedTriggers(o); } catch (err) { reportError(err, "targetedTriggers"); }
+    if (o.key && o.by !== pid) { const sv = { snap: clone(me), src: o.src }; orderSnaps.set(o.key, sv); if (orderSnaps.size > 30) orderSnaps.delete(orderSnaps.keys().next().value);
+      setTimeout(() => { sv.after = clone(me); }, 400); } // what the order changed = before vs. just after
     if (o.how === "lose") { markLost(`${o.byName}'s ${o.src}`); return; }
     if (o.how === "nlMill") { nonlandMilled(o.n, o.who); return; }
     if (o.how === "gyexile") {
@@ -4565,6 +4580,7 @@ function startController(code, pid) {
       render(); return;
     }
     if (o.how === "blockedDmg") { // lifelink counts damage dealt to blockers too
+      becameBlocked(o.cardN, o.src);
       const ll = Object.entries(me.bf || {}).find(([id, e]) => e.n === o.cardN && kwsOf({ ...e, o: e.o || lookupCard(e.n)?.o }, pid, id).some(x => x.k === "lifelink"))
         || Object.entries(me.tokens || {}).find(([k, t]) => o.cardN === t.name && kwsOf(tokenPerm(t), pid, k, true).some(x => x.k === "lifelink"));
       if (ll && o.dmg > 0 && !me.prot?.life) { mutate(p => { p.life = (p.life ?? START_LIFE) + o.dmg; }); logTo(code, `💚 ${me.name}'s ${o.src}: lifelink +${o.dmg} life (dealt to ${o.victim})`); }
@@ -5324,6 +5340,61 @@ function startController(code, pid) {
     hits.forEach(([oid, nm]) => { if (oid === pid) { if (!me.prot?.life && !preventMe()) mutate(p => { p.life = (p.life ?? START_LIFE) - hi; }); } else act([{ type: "effects", effs: [{ k: "tlose", n: hi, target: oid, targetName: nm }], times: 1, count: 1, src: r.src }]); });
     all.filter(x => x[2] !== lo).forEach(([oid]) => { if (oid === pid) reminders.push({ id: newId(), src: r.src, text: "You didn't choose the lowest number: discard your hand, then draw seven cards.", times: 1, drawN: 7 }); else sendNote(oid, { text: `${me.name}'s ${r.src}: you didn't choose the lowest number — discard your hand, then draw seven cards.`, src: r.src }); });
     render();
+  }
+  // ⚔🛡 combat triggers the app can see from the notes and orders: "attacks you", "blocks", "becomes blocked"
+  const reQ = x => String(x).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const selfRef = e => `(?:this creature|${reQ(dispName(e).split(",")[0].split(" // ")[0])}|${reQ(String(e.n || "").split(",")[0].split(" // ")[0])})`;
+  const fxRem = (src, srcId, text, extra = {}) => { const t = text.replace(/^\w/, c => c.toUpperCase()), sp = spellAbility({ n: `${src} · combat`, t: "Instant", o: text });
+    reminders.push(normalizeRem({ id: newId(), src, srcId, text: t, times: 1, ...(sp.effs.length ? { effs: sp.effs } : {}), ...extra })); };
+  function attackedTriggers(h) { // an opponent's creature(s) just attacked me
+    const n = Math.max(1, h.times || 1), st = h.stats || {}, fly = (st.kws || []).some(k => /^flying$/i.test(k));
+    Object.entries(me.bf || {}).forEach(([id, e]) => { const o = String(e.o || lookupCard(e.n)?.o || "");
+      for (const m of o.matchAll(/^(?:[^\n—]{1,40} — )?whenever a creature( without flying| with power (\d+) or greater)? attacks you(?: or a planeswalker you control)?, ([^\n]+)$/gim)) {
+        if (/that creature's controller loses \d+ life and you gain \d+ life/i.test(m[3])) continue; // the attacker's phone does these
+        if (m[1] && /without flying/i.test(m[1]) && fly) continue;
+        if (m[2] && st.p != null && st.p < Number(m[2])) continue;
+        fxRem(dispName(e), id, `${h.from}'s ${h.src} attacked you${n > 1 ? ` (×${n})` : ""}: ${m[3]}`, n > 1 ? { times: n } : {}); }
+      const once = o.match(/^(?:[^\n—]{1,40} — )?whenever (?:an opponent|a player) attacks you(?: and\/or one or more planeswalkers you control| with one or more creatures)?, ([^\n]+)$/im);
+      if (once && attackedOnce !== `${tableCombat}|${h.fromId}|${id}`) { attackedOnce = `${tableCombat}|${h.fromId}|${id}`; fxRem(dispName(e), id, `${h.from} attacked you: ${once[1]}`); }
+    });
+  }
+  let attackedOnce = "";
+  // 🎯 "becomes the target" triggers when another player's spell or ability reaches my permanents (asked as "if it targeted…": orders don't say whether they targeted)
+  function targetedTriggers(o) {
+    const hit = [...(o.targets || []), ...(o.effs || []).map(f => f.target).filter(Boolean)].filter(t => t.kind === "bf" && me.bf?.[t.id]).map(t => t.id);
+    if (!hit.length) return;
+    const P = "^(?:[^\\n—]{1,40} — )?when(?:ever)? ", TAIL = " becomes? the target of (a spell or ability|a spell|an ability)(?: an opponent controls| you don't control)?(?: for the first time each turn)?, ([^\\n]+)$";
+    const nm = id => dispName(me.bf[id]);
+    Object.entries(me.bf || {}).forEach(([wid, w]) => { const t = String(w.o || lookupCard(w.n)?.o || ""); if (!/becomes? the target of/i.test(t)) return;
+      const tries = [[new RegExp(P + selfRef(w) + TAIL, "im"), hit.includes(wid) ? [wid] : []],
+        [new RegExp(P + "enchanted (?:creature|permanent|land)" + TAIL, "im"), w.att && hit.includes(w.att) ? [w.att] : []],
+        [new RegExp(P + "(?:you or )?(another |a |one or more )?(creatures?|permanents?|[A-Z][a-z]+s?) you control" + TAIL, "im"), null]];
+      for (const [re, ids0] of tries) { const m = t.match(re); if (!m) continue;
+        let ids = ids0;
+        if (!ids) { const kind = m[2] || "", other = /another/i.test(m[1] || ""); ids = hit.filter(id => (!other || id !== wid) && (/^permanents?$/i.test(kind) || (/^creatures?$/i.test(kind) ? /\bCreature\b/.test(me.bf[id].t || "") : new RegExp(`\\b${reQ(kind.replace(/s$/, ""))}`, "i").test(me.bf[id].t || "")))); }
+        if (!ids.length) continue;
+        const what = m[m.length - 2], eff = m[m.length - 1];
+        fxRem(dispName(w), wid, `If ${o.byName}'s ${o.src || "effect"} targeted ${ids.map(nm).join(", ")}${what === "a spell" ? " (a spell, not an ability)" : what === "an ability" ? " (an ability)" : ""}: ${eff}`);
+        break; }
+    });
+    setTimeout(render, 0);
+  }
+  function blockTriggers(list) { // my creatures just blocked: [{kind,id}]
+    const done = new Set();
+    list.forEach(x => { if (x.kind !== "bf" || done.has(x.id)) return; done.add(x.id); const e = me.bf?.[x.id]; if (!e) return; const o = String(e.o || lookupCard(e.n)?.o || "");
+      const m = o.match(new RegExp(`^(?:[^\\n—]{1,40} — )?whenever ${selfRef(e)} blocks(?: or becomes blocked)?(?: by)?(?: a creature)?, ([^\\n]+)$`, "im"));
+      if (m) fxRem(dispName(e), x.id, `It blocked: ${m[1]}`);
+      const bu = o.match(/^Bushido (\d+)/m); if (bu) act([{ type: "effects", effs: [{ k: "pumpOn", target: { kind: "bf", id: x.id }, dp: Number(bu[1]), dt: Number(bu[1]), kws: [] }], times: 1, count: 1, src: `${dispName(e)} (bushido)`, srcId: x.id }]); });
+  }
+  function becameBlocked(cardN, src) { // the defender says my attacker was blocked
+    Object.entries(me.bf || {}).filter(([, e]) => e.n === cardN).slice(0, 1).forEach(([id, e]) => { const o = String(e.o || lookupCard(e.n)?.o || "");
+      const m = o.match(new RegExp(`^(?:[^\\n—]{1,40} — )?whenever ${selfRef(e)} (?:blocks or )?becomes blocked(?: by (?:a|one or more) creatures?)?, ([^\\n]+)$`, "im"));
+      if (m) fxRem(dispName(e), id, `It became blocked: ${m[1]}`);
+      const af = o.match(/^Afflict (\d+)/m); if (af) reminders.push({ id: newId(), src: `${dispName(e)} (afflict)`, srcId: id, text: `The defending player loses ${af[1]} life.`, times: 1, effs: [{ k: "tlose", n: Number(af[1]), who: "opponent" }] });
+      const bu = o.match(/^Bushido (\d+)/m); if (bu) act([{ type: "effects", effs: [{ k: "pumpOn", target: { kind: "bf", id }, dp: Number(bu[1]), dt: Number(bu[1]), kws: [] }], times: 1, count: 1, src: `${dispName(e)} (bushido)`, srcId: id }]);
+      Object.entries(me.bf || {}).filter(([, q]) => q.att === id).forEach(([qid, q]) => { const qo = String(q.o || lookupCard(q.n)?.o || ""), qm = qo.match(/^(?:[^\n—]{1,40} — )?whenever equipped creature becomes blocked, ([^\n]+)$/im); if (qm) fxRem(dispName(q), qid, `${dispName(e)} became blocked: ${qm[1]}`); });
+      if (m || af || bu) { toast(`🛡 ${dispName(e)} was blocked: its trigger is up`); setTimeout(render, 0); }
+    });
   }
   function pairsAttackCheck() {
     const tp = Object.values(me.bf || {}).find(x => /whenever an opponent attacks you with two or more creatures/i.test(x.o || lookupCard(x.n)?.o || ""));
@@ -8073,7 +8144,7 @@ function startController(code, pid) {
         const r = reminders.find(x => x.id === b.dataset.id); if (!r?.revertKey) break;
         reminders = reminders.filter(x => x !== r);
         const sv = orderSnaps.get(r.revertKey);
-        if (b.dataset.a === "rv-back" && sv) { orderSnaps.delete(r.revertKey); logTo(code, `↩ ${me.name}'s board put back (${r.src})`); mutate(p => { Object.keys(p).forEach(k => delete p[k]); Object.assign(p, clone(sv.snap)); }); }
+        if (b.dataset.a === "rv-back" && sv) { orderSnaps.delete(r.revertKey); logTo(code, `↩ ${me.name}'s board put back (${r.src})`); mutate(p => revertParts(p, sv.snap, sv.after || clone(me))); }
         else render();
         break;
       }
@@ -9735,6 +9806,7 @@ function startController(code, pid) {
         const aName = (n.times || 1) > 1 ? `one ${a.name}` : n.src; // a group of tokens: one of them was blocked
         const result = bl.length === 1 ? `${dies.length ? `${bl[0].name} dies` : `${bl[0].name} survives`}; ${aName} ${aDies ? "dies" : "survives"}` : `${aName} ${aDies ? "dies" : "survives"}; ${n.from} splits its ${total} damage among the blockers`;
         logTo(code, `🛡 ${me.name} blocked ${n.from}'s ${aName} (${a.p}/${a.t}) with ${names}: ${result}${tramp ? ` · ${tramp} tramples over` : ""}`);
+        blockTriggers(bl);
         mutate(p => { const k = tableCombat; if (p.blk?.k !== k) p.blk = { k, u: {} }; p.blk.u ||= {}; bl.forEach(x => { const key = `${x.kind}:${x.id}`; p.blk.u[key] = (p.blk.u[key] || 0) + 1; }); });
         if (n.fromId) sendNote(n.fromId, { text: `${me.name} blocked your ${aName} with ${names}. ${bl.length === 1 ? (aDies ? `Your ${aName} should die` : `Your ${aName} survives`) + (dies.length ? ` and kills ${bl[0].name}` : "") : `${aDies ? `Your ${aName} should die. ` : ""}You split its ${total} damage among the blockers`}${tramp ? `; ${tramp} trample damage hits ${me.name}` : ""}.`, src: "Blocks" });
         if (n.cardN && n.fromId) sendOrders({ [n.fromId]: {} }, { how: "blockedDmg", cardN: n.cardN, src: n.src, dmg: Math.max(0, total - tramp), victim: shortNames });
@@ -9909,6 +9981,7 @@ function startController(code, pid) {
       if (seenNotes === null) seenNotes = new Set(ids);
       else { const fresh = ids.filter(x => !seenNotes.has(x)); fresh.forEach(x => seenNotes.add(x));
         const ns = fresh.map(x => mine[x]).filter(n => n && n.from !== me.name);
+        ns.filter(n => n.kind === "hit").forEach(n => { try { attackedTriggers(n); } catch (err) { reportError(err, "attackedTriggers"); } });
         if (ns.length) { const h = ns.find(n => n.kind === "hit");
           try { navigator.vibrate?.(h ? [220, 90, 220, 90, 220] : [160, 80, 160]); } catch {}
           try { if (turnAlerts) playTurnChime(); } catch {}
