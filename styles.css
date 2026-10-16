@@ -612,3 +612,21 @@ body.wide .side-table > :not(.tpanel) { grid-column: 1 / -1; }
 
 /* hand tab: command zone, graveyard and exile under the library */
 .hand-zones:empty { display: none; }
+/* Phased out: still on the battlefield, but treated as though it doesn't exist */
+.tslot.phased .tcard { opacity: .3; filter: grayscale(1); }
+.tslot.phased::after { content: "👻"; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: calc(var(--ch, 60px) * .28); pointer-events: none; z-index: 3; }
+.perm.phased { opacity: .55; }
+.perm-chip.phased { opacity: .6; }
+/* 🌐 a player's always-on effects, on their own panel: one small line each */
+.p-fx { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 4px; font-size: clamp(10px, .78vw, 15px); line-height: 1.25; }
+.pfx { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .82; border-left: 3px solid var(--pc); padding-left: 6px; }
+.pfx b { color: var(--slate, #7a8fb5); font-weight: 700; }
+.pfx.off { opacity: .4; }
+.pfx.more { opacity: .55; font-style: italic; border-left-color: transparent; }
+/* a sideways row label must never make its row taller than its cards (it squeezed crowded boards into dots) */
+.trow-lbl { contain: size; width: calc(1.3em + 6px); flex: none; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+/* the stack, top to bottom: combat results → triggers to resolve → attackers still waiting for blocks */
+#remBox { display: flex; flex-direction: column; }
+#remBox > .hit-box:has([data-a="hit-take"]) { order: 2; }
+.miss-box { margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
+.miss-box textarea { width: 100%; box-sizing: border-box; font: inherit; }

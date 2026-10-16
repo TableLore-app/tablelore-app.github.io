@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261016c";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016c";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016c";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016c";
+import { firebaseConfig } from "./config.js?v=20261016d";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016d";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016d";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016d";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -181,6 +181,7 @@ function updateTablePT(room) {
   tablePT = null; tableBuffs = []; tableLose = []; tablePlayers = {}; tableSpoil = {};
   seated(room || {}).forEach(o => { if (o.spoil && o.spoil.turnNo === (room?.turnNo || 0)) tableSpoil[o.id] = o.spoil.pt; });
   tableStep = room?.turn ? STEPS[stepOf(room)] : ""; tableTurn = room?.turn || null; tableTurnNo = room?.turnNo || 0;
+  tableCombat = `${room?.turnNo || 0}:${room?.step?.turnNo === (room?.turnNo || 0) ? room.step.extra || 0 : 0}`;
   // Yavimaya: "Each land is a Forest in addition to its other land types"
   const adds = [];
   seated(room || {}).filter(o => !isOut(o)).forEach(o => Object.values(o.bf || {}).forEach(e => { const m = String(e.o || "").match(/^each land is an? (Plains|Island|Swamp|Mountain|Forest) in addition to its other land types/im); if (m) adds.push({ to: "Land", add: m[1], src: dispName(e) }); }));
@@ -440,11 +441,17 @@ function fightOut(a, b) {
   return { aDies, bDies, tramp };
 }
 // Every creature `defender` could block `a` with, and how it goes
+// 🛡 who is already blocking this combat (kept on the player, so Undo takes it back too)
+let tableCombat = ""; // this combat (turn + extra-combat number), set with the table state
+const blockingNow = p => p?.blk?.k === tableCombat ? (p.blk.u || {}) : {};
 function blockPreview(a, defender) {
   const rows = [];
   Object.keys(defender?.bf || {}).forEach(id => { const b = combatStats(defender, "bf", id); if (b) rows.push({ ...b, kind: "bf", id }); });
   Object.keys(defender?.tokens || {}).forEach(k => { const b = combatStats(defender, "tok", k); if (b) rows.push({ ...b, kind: "tok", id: k }); });
-  rows.forEach(b => { b.why = canBlock(a, b, defender); b.out = b.why ? null : fightOut(a, b); });
+  const used = blockingNow(defender); // a creature blocks one attacker per combat (blocking doesn't tap it)
+  rows.forEach(b => { const n = used[`${b.kind}:${b.id}`] || 0;
+    if (n && !/can block (?:an additional|any number of|two|three)/i.test(b.o || "")) { b.avail = Math.max(0, b.avail - n); b.blocking = n; } });
+  rows.forEach(b => { b.why = b.blocking && b.avail <= 0 ? "already blocking" : canBlock(a, b, defender); b.out = b.why ? null : fightOut(a, b); });
   const able = rows.filter(b => !b.why);
   return { rows, able, killers: able.filter(b => b.out.aDies && !b.out.bDies), trades: able.filter(b => b.out.aDies && b.out.bDies), menace: kwHas(a.kws, "menace") || /can't be blocked except by (?:two|three) or more creatures/i.test(a.o || "") };
 }
@@ -745,7 +752,7 @@ async function resetGame(code) {
 // Selfless Squire / Willbreaker trigger text (used by the card buttons and the trigger hooks)
 const SQUIRE_RE = /^(?:[^—\n]{1,40} — )?whenever damage that would be dealt to you is prevented, put that many \+1\/\+1 counters on (?:this creature|[^.]+)\.?$/im;
 const WILLB_RE = /^(?:[^—\n]{1,40} — )?whenever a creature an opponent controls becomes the target of a spell or ability you control, gain control of that creature/im;
-const APP_VERSION = "2026.10.16c";
+const APP_VERSION = "2026.10.16d";
 
 // Brand: the clasped tome emblem (original art) and the Triggernomicon wordmark
 const TOME_SVG = `<svg class="tome" viewBox="0 0 100 118" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M18 6 H88 a4 4 0 0 1 4 4 V104 a4 4 0 0 1 -4 4 H18 a10 10 0 0 1 -10 -10 V16 a10 10 0 0 1 10 -10Z"/><path d="M8 98 a10 10 0 0 1 10 -10 H92" stroke-width="2"/><line x1="20" y1="7" x2="20" y2="88" stroke-width="2"/><path d="M92 50 H100 V64 H92" stroke-width="2.6"/><path d="M80 6 L92 6 L92 18" stroke-width="2"/><path d="M80 88 L92 88 L92 76" stroke-width="2"/><g class="emb" stroke="currentColor" stroke-width="1.6"><line x1="56.0" y1="25.5" x2="56.0" y2="19.0"/><line x1="62.2" y1="23.8" x2="63.2" y2="20.0"/><line x1="68.0" y1="26.2" x2="70.0" y2="22.8"/><line x1="71.2" y1="31.8" x2="75.8" y2="27.2"/><line x1="76.8" y1="35.0" x2="80.2" y2="33.0"/><line x1="79.2" y1="40.8" x2="83.0" y2="39.8"/><line x1="77.5" y1="47.0" x2="84.0" y2="47.0"/><line x1="79.2" y1="53.2" x2="83.0" y2="54.2"/><line x1="76.8" y1="59.0" x2="80.2" y2="61.0"/><line x1="71.2" y1="62.2" x2="75.8" y2="66.8"/><line x1="68.0" y1="67.8" x2="70.0" y2="71.2"/><line x1="62.2" y1="70.2" x2="63.2" y2="74.0"/><line x1="56.0" y1="68.5" x2="56.0" y2="75.0"/><line x1="49.8" y1="70.2" x2="48.8" y2="74.0"/><line x1="44.0" y1="67.8" x2="42.0" y2="71.2"/><line x1="40.8" y1="62.2" x2="36.2" y2="66.8"/><line x1="35.2" y1="59.0" x2="31.8" y2="61.0"/><line x1="32.8" y1="53.2" x2="29.0" y2="54.2"/><line x1="34.5" y1="47.0" x2="28.0" y2="47.0"/><line x1="32.8" y1="40.8" x2="29.0" y2="39.8"/><line x1="35.2" y1="35.0" x2="31.8" y2="33.0"/><line x1="40.8" y1="31.8" x2="36.2" y2="27.2"/><line x1="44.0" y1="26.2" x2="42.0" y2="22.8"/><line x1="49.8" y1="23.8" x2="48.8" y2="20.0"/></g><circle class="emb" stroke="currentColor" cx="56" cy="47" r="20" stroke-width="1.4"/></g><path class="emb" fill="currentColor" d="M56 32 C57.24 42.05 59.00 44.00 71 47 C59.00 50.00 57.24 51.95 56 62 C54.76 51.95 53.00 50.00 41 47 C53.00 44.00 54.76 42.05 56 32Z"/></svg>`;
@@ -878,6 +885,8 @@ function startHost(code, watch = false) {
     updateTablePT(room);
     const ps = seated(room);
     board.dataset.count = ps.length;
+    const fxAll = effectsInPlay(room); // lasting effects sit on their owner's panel, this-turn ones in the bar
+    tvFxByOwner = {}; fxAll.filter(x => !x.thisTurn).forEach(x => (tvFxByOwner[x.owner.id] ||= []).push(x));
     board.innerHTML = ps.length
       ? ps.map(p => panel({ ...p, __notes: room.notes?.[p.id] }, ps, room.turn)).join("")
       : `<div class="empty">Scan the code or enter ${esc(code)} on your phone to join.</div>`;
@@ -899,7 +908,7 @@ function startHost(code, watch = false) {
     const wb = document.getElementById("winBar");
     wb.hidden = !room.winner;
     if (room.winner) wb.innerHTML = `🏆 <b>${esc(room.winner.name)}</b> wins the game! <span>(${esc(room.winner.src)})</span>`;
-    const fxs = effectsInPlay(room), fb = document.getElementById("fxBar");
+    const fxs = fxAll.filter(x => x.thisTurn), fb = document.getElementById("fxBar"); // lasting effects sit on their owner's panel
     fb.hidden = !fxs.length && !room.control;
     fb.innerHTML = (room.control ? `<span class="fx-chip ctl">${esc(controlText(room.control))}</span>` : "") + (fxs.length ? `<span class="fx-title">🌐 In play</span>${fxs.map(x => `<span class="fx-chip ${x.off ? "off" : ""}" style="--pc:${esc(x.owner.color)}"><b>${esc(x.src)}</b> <i>(${esc(x.owner.name)})</i>: ${esc(x.lines.join(" "))}${x.off ? " <em>· off while tapped</em>" : ""}</span>`).join("")}` : "");
     const pb = document.getElementById("pendingBar"), pend = room.pending;
@@ -993,9 +1002,11 @@ function fitTvCards0(board) {
     const fits = (ch, mode) => rows.reduce((tot, r, ri) => { let h = 0, lineH = 0, x = 0, lines = 0; items(r, ch, fanRow(r, mode)).forEach(([f, hf]) => { const w = f * ch; if (x && x + w > r.W) { h += lineH; lines++; x = 0; lineH = 0; } x += w + gx; lineH = Math.max(lineH, hf * ch); }); h += lineH; return tot + h + lines * gy + (ri ? gy * 1.5 : 0); }, 0) <= H;
     const best = mode => { let ch = Math.min(H, window.innerHeight * 0.26); while (ch > 28 && !fits(ch, mode)) ch *= 0.95; return ch; };
     // fan lands / artifacts first; creatures only when the board is still tiny (their P/T matter most)
-    const c0 = best(0), c1 = best(1), c2 = 0; // creatures never fan: their P/T and keywords matter in combat
+    // creatures fan only as a last resort (their P/T matter in combat), when the cards would otherwise shrink to dots
+    const c0 = best(0), c1 = best(1), tiny = window.innerHeight * 0.11, c2 = Math.max(c0, c1) < tiny ? best(2) : 0;
     let mode = 0, ch = c0;
     if (c1 > c0 * 1.12) { mode = 1; ch = c1; }
+    if (c2 > ch * 1.12) { mode = 2; ch = c2; }
     if (window.TVFAN_DEBUG) console.log("fit", panel.querySelector(".p-name")?.textContent, Math.round(c0), Math.round(c1), Math.round(c2), "mode", mode);
     pc.style.setProperty("--ch", `${Math.floor(ch)}px`);
     rows.forEach(r => { const pl = pileOf(r, ch, fanRow(r, mode)); if (!pl) return;
@@ -1032,7 +1043,7 @@ function cardTile(e, counts, owner, id, atts = []) {
   return `<div class="tslot ${tvSlotCls()} ${e.tap ? "tapped" : ""}${attSlot(atts)}" title="${esc(dispName(e))}">${attHtml(atts)}<div class="tcard ${img ? "" : "noimg"} ${e.own ? "borrowed" : ""}" ${e.own ? `style="--oc:${esc(e.own.color || "#888")}"` : ""}>
     ${img ? `<img src="${esc(smallImg(img))}" alt="" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()">` : ""}
     <span class="tc-name">${e.fd ? "🂠 Face-down" : esc(dispName(e))}</span>
-    <span class="tc-tags">${e.cmd ? "⭐" : ""}${e.own ? "🔀" : ""}${owner?.ring?.bearer?.id === id ? "💍" : ""}${sick ? "💤" : ""}</span>
+    <span class="tc-tags">${blockingNow(owner)[`bf:${id}`] ? "🛡" : ""}${e.cmd ? "⭐" : ""}${e.own ? "🔀" : ""}${owner?.ring?.bearer?.id === id ? "💍" : ""}${sick ? "💤" : ""}</span>
     ${extra.length ? `<span class="tc-ctr">${esc(extra.join(" · "))}</span>` : ""}
     ${pt ? `<span class="tc-pt">${pt}</span>` : ""}
   </div></div>`;
@@ -1078,6 +1089,13 @@ function tokenTiles(p, tk, t, atts = []) {
     ${pt ? `<span class="tc-pt">${pt}</span>` : ""}</div></div>`;
   return (up > 0 ? tile(up, false, atts) : "") + (t.tapped ? tile(t.tapped, true, up > 0 ? [] : atts) : "");
 }
+let tvFxByOwner = {};
+// 🌐 each player's always-on effects, one short line apiece (full text on hover / in the phones' "In play" list)
+function panelFx(p) {
+  const fx = tvFxByOwner[p.id] || []; if (!fx.length) return "";
+  const MAX = 3, shown = fx.slice(0, MAX);
+  return `<div class="p-fx">${shown.map(x => `<div class="pfx ${x.off ? "off" : ""}" title="${esc(x.src + ": " + x.lines.join(" "))}"><b>${esc(x.src)}</b> ${esc(x.lines.join(" "))}${x.off ? " <em>(off: tapped)</em>" : ""}</div>`).join("")}${fx.length > MAX ? `<div class="pfx more">+${fx.length - MAX} more (see phones: In play)</div>` : ""}</div>`;
+}
 function panel(p, ps, turn) {
   const out = isOut(p);
   const cmd = cmdEntries(p, ps);
@@ -1099,8 +1117,13 @@ function panel(p, ps, turn) {
       const cre = creatures.filter(([id]) => !onIt.has(id)).map(([id, e]) => cardTile(e, counts, p, id, attsOn(p, id))).join("") + tokensE.filter(([, t]) => isCreatureToken(t.name)).map(([tk, t]) => tokenTiles(p, tk, t, attsOn(p, tk, t))).join("");
       const oth = othV.map(([id, e]) => cardTile(e, counts, p, id, attsOn(p, id))).join("") + tokensE.filter(([, t]) => !isCreatureToken(t.name)).map(([tk, t]) => tokenTiles(p, tk, t, attsOn(p, tk, t))).join("");
       const stacks = new Map(); bfE.filter(([, e]) => group(e) === "land").forEach(([id, e]) => { if (onIt.has(id)) return; const at = attsOn(p, id); const k = at.length ? `att|${id}` : `${e.n}|${e.tap ? 1 : 0}|${e.fd ? 1 : 0}`; const st = stacks.get(k); if (st) st.n++; else stacks.set(k, { e, n: 1, at }); }); // an enchanted land gets its own tile
+      const ghost = h => h.replace(/<div class="tslot /g, '<div class="tslot phased ');
+      const phE = Object.entries(p.phased?.bf || {}), phT = Object.entries(p.phased?.tokens || {}).filter(([, t]) => t.count > 0);
+      const phCre = ghost(phE.filter(([, e]) => group(e) === "creature").map(([id, e]) => cardTile(e, counts, p, id)).join("") + phT.filter(([, t]) => isCreatureToken(t.name)).map(([tk, t]) => tokenTiles(p, tk, t)).join(""));
+      const phOth = ghost(phE.filter(([, e]) => group(e) === "pw" || group(e) === "other").map(([id, e]) => cardTile(e, counts, p, id)).join("") + phT.filter(([, t]) => !isCreatureToken(t.name)).map(([tk, t]) => tokenTiles(p, tk, t)).join(""));
+      const phLnd = ghost(phE.filter(([, e]) => group(e) === "land").map(([id, e]) => landTile(e, 1)).join(""));
       const lnd = [...stacks.values()].sort((a, b) => (a.e.n > b.e.n ? 1 : a.e.n < b.e.n ? -1 : 0) || (a.e.tap ? 1 : 0) - (b.e.tap ? 1 : 0)).map(({ e, n, at }) => landTile(e, n, at)).join("");
-      return `<div class="p-cards">${typeRows([["Creatures", cre], [otherLabel(othV.map(([, e]) => e), tokensE.filter(([, t]) => !isCreatureToken(t.name))), oth], ["Lands", lnd]])}</div>`; });
+      return `<div class="p-cards">${typeRows([["Creatures", cre + phCre], [otherLabel(othV.map(([, e]) => e), tokensE.filter(([, t]) => !isCreatureToken(t.name))), oth + phOth], ["Lands", lnd + phLnd]])}</div>`; });
   return `
   <section class="panel ${p.id === turn ? "active" : ""} ${out ? "out" : ""} ${tvCards ? "cardsview" : ""}" style="--pc:${esc(p.color)}">
     <div class="p-name">${esc(p.name)}${p.id === turn ? `<span class="turn-tag">Turn${tableStep ? ` · ${esc(tableStep)}` : ""}</span>` : ""}</div>
@@ -1114,10 +1137,12 @@ function panel(p, ps, turn) {
       ${taxes.map(([k, n]) => `<span class="stat">⭐ ${esc(k.split("-")[0].replace(/^\w/, m => m.toUpperCase()))} tax +${n * 2}</span>`).join("")}
     </div>
     <div class="p-effects">${effects.map(ef => `<span class="badge ${ef.dur === "turn" ? "turn" : ""}">${ef.icon} ${esc(ef.name)}${ef.dur === "turn" ? " · this turn" : ""}</span>`).join("")}${p.dg && DUNGEONS[p.dg.d] ? `<span class="badge">🏰 ${esc(DUNGEONS[p.dg.d].name)}: ${esc(DUNGEONS[p.dg.d].rooms[p.dg.r]?.n || "")}</span>` : ""}${p.dgDone ? `<span class="badge">🏆 Dungeons completed ×${p.dgDone}${p.dgList ? ` (${esc(p.dgList)})` : ""}</span>` : ""}</div>
+    ${panelFx(p)}
     ${tvView === "cards" ? cardsBlock() : ""}
     ${tvView !== "cards" && creatures.length ? `<div class="p-perms">${creatures.map(([id, e]) => permChip(e, counts, p, id)).join("")}</div>` : ""}
     ${tvView !== "cards" && (others.length || lands.length) ? `<div class="p-perms">${others.map(([id, e]) => permChip(e, counts, p, id)).join("")}${lands.length ? `<span class="perm-chip land">Lands ×${lands.length}${tappedLands ? ` (${tappedLands} tapped)` : ""}</span>` : ""}</div>` : ""}
     ${Object.values(p.susp || {}).length ? `<div class="p-perms">${Object.values(p.susp).map(e => `<span class="perm-chip susp">⏳ ${esc(dispName(e))} <b>${e.time}</b></span>`).join("")}</div>` : ""}
+    ${tvView !== "cards" && (Object.keys(p.phased?.bf || {}).length || Object.keys(p.phased?.tokens || {}).length) ? `<div class="p-perms">${[...Object.values(p.phased.bf || {}).map(e => dispName(e)), ...Object.values(p.phased.tokens || {}).map(t => `${t.count} ${t.name}`)].map(n => `<span class="perm-chip phased">👻 ${esc(n)} <i>phased out</i></span>`).join("")}</div>` : ""}
     ${Object.values(p.air || {}).length ? `<div class="p-perms">${Object.values(p.air).map(e => `<span class="perm-chip air">🌀 ${esc(dispName(e))} <i>cast for {2}</i></span>`).join("")}</div>` : ""}
     <div class="p-tokens">${tvView === "cards" ? "" : tokensE.map(([tk, t]) => `<span class="token">${ringBearer(p)?.k === tk ? "💍 " : ""}${esc(t.name)}${t.c || buffsOn(tokenPerm(t), p.id, tk, true).dp || buffsOn(tokenPerm(t), p.id, tk, true).dt ? ` <b>${tokPTfx(t, p.id, tk)}</b>` : ""} <b>×${t.count}</b>${sickTokens(t, p, tk) ? ` 💤${sickTokens(t, p, tk) < t.count ? sickTokens(t, p, tk) : ""}` : ""}${t.tapped ? ` <i class="tapped-note">${t.tapped === t.count ? "all tapped" : t.tapped + " tapped"}</i>` : ""}</span>`).join("")}</div>
     ${tvView === "both" ? `</div>${cardsBlock()}</div>` : ""}
@@ -2132,8 +2157,9 @@ function startController(code, pid) {
     return "";
   }
   const zoneOpen = new Set();
+  const phasedList = () => [...Object.values(me?.phased?.bf || {}).map(e => ({ label: dispName(e), cmd: !!e.cmd })), ...Object.values(me?.phased?.tokens || {}).map(t => ({ label: `${t.count} ${t.name} token${t.count === 1 ? "" : "s"}` }))];
   function cmdZoneHtml() {
-    const inZone = (deck?.cmds || []).map((name, i) => [name, i]).filter(([name]) => !Object.values(me?.bf || {}).some(e => e.n === name));
+    const inZone = (deck?.cmds || []).map((name, i) => [name, i]).filter(([name]) => ![...Object.values(me?.bf || {}), ...Object.values(me?.phased?.bf || {}), ...Object.values(me?.air || {})].some(e => e.n === name));
     if (!inZone.length) return "";
     return `<section class="card"><h3>Command zone</h3>${inZone.map(([name, i]) => { const casts = me.tax?.[slug(name)] || 0;
       return `<div class="counter"><span class="who">⭐ ${esc(name)} ${costHtml(deck.cards.find(c => c.n === name) || { n: name, m: "" }, casts * 2)}<span class="sub">${casts ? `Cast ${casts}× · next tax +${casts * 2}` : "Not cast yet"}</span></span>
@@ -2794,6 +2820,7 @@ function startController(code, pid) {
       if (spent > 0) { mutate(p => { p.spentT = { t, n: prev + spent }; }, true); if (Object.values(me.bf || {}).some(x => /whenever you expend \d+/i.test(x.o || lookupCard(x.n)?.o || ""))) setTimeout(() => act([{ type: "expend", prev, n: prev + spent }]), 0); }
       if (fz?.z === "ex") Object.values(me.bf || {}).forEach(x => { const m = String(x.o || lookupCard(x.n)?.o || "").match(/whenever you (?:play a land from exile or )?cast a spell from exile, you gain (\d+) life/i); if (m) setTimeout(() => act([{ type: "effects", effs: [{ k: "gain", n: Number(m[1]) }], times: 1, count: 1, src: dispName(x) }]), 0); });
     }
+    if (castKey && !opts.copy && !opts.free) payForCast(card, costOf(card));
     if (castKey && castHaste) { opts = { ...opts, haste: castHaste }; castHaste = null; }
     if (castKey && !opts.copy && !/\bCreature\b/.test(card.t || "")) setTimeout(() => eqCounterTrigger("noncreature spell"), 0);
     if (castKey && !opts.copy) { const ext = Object.values(me.bf || {}).filter(e => /^Extort\b/m.test(e.o || lookupCard(e.n)?.o || "")); if (ext.length) { reminders.push({ id: newId(), src: ext.length > 1 ? `Extort ×${ext.length}` : `${dispName(ext[0])} (extort)`, text: `You may pay {W/B}${ext.length > 1 ? ` up to ${ext.length} times` : ""}. Each time: each opponent loses 1 life and you gain that much.`, times: 1, extort: ext.length }); setTimeout(render, 0); } }
@@ -3052,6 +3079,7 @@ function startController(code, pid) {
     const casts = me.tax?.[slug(name)] || 0;
     const id = newId();
     logTo(code, `${me.name} cast ${name} from the command zone${casts ? ` (tax +${casts * 2})` : ""}`);
+    payForCast(card, (costOf(card) || "") + (casts ? `{${casts * 2}}` : ""));
     act([{ type: "cast", card, id, fromZone: "cmd" }], p => { p.tax ||= {}; p.tax[slug(name)] = casts + 1; }); // tax counts even if it's countered
     const snap = remSnap();
     act([{ type: "enters", id, card, cast: true }], p => {
@@ -3657,6 +3685,7 @@ function startController(code, pid) {
     let left = 0;
     (String(pay).match(/\{[^}]+\}/g) || []).forEach(sy => {
       if (/^\{\d+\}$/.test(sy) || /^\{[XT]\}$/.test(sy)) return;
+      if (/\/P\}$/.test(sy)) return; // Phyrexian: mana or 2 life, asked separately
       const opts = sy.match(/[WUBRGC]/g) || [];
       const c = opts.sort((a, b2) => (pool[b2] || 0) - (pool[a] || 0)).find(x => (pool[x] || 0) > 0);
       if (c) { pool[c]--; took.push(c); } else left++;
@@ -3668,6 +3697,14 @@ function startController(code, pid) {
     if (took.length) mutate(p => { took.forEach(c => { p.pool[c] -= 1; if (!p.pool[c]) delete p.pool[c]; }); if (p.pool && !Object.keys(p.pool).length) delete p.pool; if (p.poolHaste > (p.pool?.C || 0)) { if (p.pool?.C) p.poolHaste = p.pool.C; else { delete p.poolHaste; delete p.poolHasteSrc; } } }, true);
     if (label) logTo(code, `${me.name} paid ${pay} for ${label}${took.length ? ` (from the pool: ${took.map(c => `{${c}}`).join("")})` : ""}${left ? ` · ${left} more from another source` : ""}`);
     return { took, left };
+  }
+  // 💸 casting a spell: take what I can from a tracked mana pool, and ask how each Phyrexian symbol was paid
+  function payForCast(card, cost) {
+    cost = String(cost || "");
+    if (me.pool && Object.keys(me.pool).length && cost.replace(/\{[^}]*\/P\}/g, "")) payPool(cost.replace(/\{[^}]*\/P\}/g, ""), dispName(card));
+    const phy = cost.match(/\{[^}]*\/P\}/g) || [];
+    if (phy.length) reminders.push({ id: newId(), src: dispName(card), times: 1, phyx: phy.join(""),
+      text: `Phyrexian mana ${phy.join("")}: pay each with its color or with 2 life. How did you pay?` });
   }
   function poolAdd(syms, why, combat) {
     const add = {}; (String(syms).match(/\{([WUBRGC])\}/g) || []).forEach(x => { const c = x[1]; add[c] = (add[c] || 0) + 1; });
@@ -4352,7 +4389,7 @@ function startController(code, pid) {
     if (e.cmd) keep.cmd = true;
     logTo(code, `🌀 ${me.name}'s ${dispName(e)} was airbended`);
     if (e.cmd) toast("Commander: recast it from Airbended for {2} (no tax), or send it to the command zone.");
-    act([], p => { delete p.bf[id]; p.air ||= {}; p.air[id] = keep; });
+    act([], p => { delete p.bf[id]; p.air ||= {}; p.air[id] = { ...keep, was: JSON.parse(JSON.stringify(e)) }; });
     expanded.delete(id);
   }
   // ----- Removal: pick targets, wait for responses, then the owner's phone carries it out -----
@@ -4406,9 +4443,23 @@ function startController(code, pid) {
       <button class="btn small primary" data-a="rm-go" data-id="${r.id}" ${dis}>${VERB[f.how]} selected${f.atk || f.pickAll ? "" : ` (up to ${cap})`}</button>`;
   }
   // Send each owner an order; their phone removes the cards so their triggers and Undo work
+  // Orders sent to other players are remembered with the undo step, so undoing it asks them to put things back (and redo sends them again)
+  function trackSentOrder(oid, o) {
+    if (!me) return;
+    if (!undo.length || undoMeta.at(-1)?.seq !== actSeq) { undo.push(clone(me)); undoExt.push(null); undoMeta.push({ seq: actSeq, label: actLabel, rem: clone(reminders || []) }); }
+    const i = undoExt.length - 1; undoExt[i] ||= {}; (undoExt[i].orders ||= []).push({ oid, o: clone(o) });
+  }
+  function rawOrder(oid, o) { update(ref(db, `rooms/${code}/orders/${oid}`), { [newId()]: { ...o, by: pid, byName: me.name, at: Date.now() } }); }
+  // After undo/redo: a response window that belonged to an undone step is closed, and restored effects get announced again
+  function resyncWindows() {
+    if (room?.pending?.by === pid && !reminders.some(r => r.id === room.pending.id)) update(ref(db, `rooms/${code}`), { pending: null });
+    reminders.forEach(r => { if (r.announced && !r.forced && room?.pending?.id !== r.id) r.announced = false; });
+    setTimeout(() => { try { announceWindows(); render(); } catch {} }, 80);
+  }
   function sendOrders(byOwner, extra) {
     Object.entries(byOwner).forEach(([oid, order]) => {
       const o = { ...order, ...extra, by: pid, byName: me.name, at: Date.now() };
+      if (oid !== pid && o.how !== "revertOrder") { o.key ||= newId(); trackSentOrder(oid, o); }
       if (oid !== pid && o.how !== "steal") [...(o.targets || []), ...(o.effs || []).map(f => f.target).filter(Boolean)].filter(t => t.kind === "bf" && t.id).forEach(t => willbreakerTargeted(oid, t.id, o.src));
       if (oid === pid) executeOrder(o);
       else update(ref(db, `rooms/${code}/orders/${oid}`), { [newId()]: o });
@@ -4466,7 +4517,14 @@ function startController(code, pid) {
   }
   const isIndestructible = (e, id) => /^(.*,\s*)?indestructible\b/im.test(e.o || lookupCard(e.n)?.o || "") || !!me.effects?.indestructible || !!e.c?.x_indestructible || kwsOf({ ...e, o: e.o || lookupCard(e.n)?.o }, pid, id).some(x => x.k === "indestructible");
   // Carry out an order on this phone's own board (from anyone, including yourself)
+  const orderSnaps = new Map(); // order key → my state just before it ran (for "put it back" after the sender undoes)
   function executeOrder(o) {
+    if (o.how === "revertOrder") {
+      if (!orderSnaps.has(o.key)) return;
+      reminders.unshift({ id: newId(), src: `${o.byName} undid ${o.src}`, text: `Put your board back the way it was before ${o.src}?`, times: 1, revertKey: o.key });
+      render(); return;
+    }
+    if (o.key && o.by !== pid) { orderSnaps.set(o.key, { snap: clone(me), src: o.src }); if (orderSnaps.size > 30) orderSnaps.delete(orderSnaps.keys().next().value); }
     if (o.how === "lose") { markLost(`${o.byName}'s ${o.src}`); return; }
     if (o.how === "nlMill") { nonlandMilled(o.n, o.who); return; }
     if (o.how === "gyexile") {
@@ -4694,7 +4752,7 @@ function startController(code, pid) {
       // permanents leave after triggers check, so "whenever another creature dies" sees a board wipe
       gone.forEach(([id, e]) => {
         delete p.bf[id];
-        if (o.how === "airbend") { p.air ||= {}; p.air[id] = airKeep(e); }
+        if (o.how === "airbend") { p.air ||= {}; p.air[id] = { ...airKeep(e), was: JSON.parse(JSON.stringify(e)) }; }
         if (o.how === "destroy") toZone(p, e, "gy");
         if (o.how === "exile" && !o.stealPlay) toZone(p, e, "ex", o.hold ? { heldBy: o.hold } : undefined);
       });
@@ -4792,7 +4850,9 @@ function startController(code, pid) {
     </div>`;
   const handDeckList = () => [...new Map((deck?.cards || []).filter(c => !deck.cmds?.includes(c.n)).map(c => [c.n, c])).values()].sort((a, b) => dispName(a).localeCompare(dispName(b)));
   function notesBox() {
-    const mine = Object.entries(room?.notes?.[pid] || {});
+    // combat results first (newest on top): what just died matters before the next attacker is blocked
+    const rank = n => n.kind === "blkres" || n.src === "Blocks" ? 0 : 1;
+    const mine = Object.entries(room?.notes?.[pid] || {}).sort(([, a], [, b]) => rank(a) - rank(b) || (rank(a) ? 0 : (b.at || 0) - (a.at || 0)));
     return handAskForm() + mine.map(([nid, n]) => n.kind === "handask" ? `<div class="ask-box hand-box">
       <div>👁 <b>${esc(n.from)}</b>${n.src ? ` (${esc(n.src)})` : ""} wants to see your hand${n.pick ? " and choose a card for you to discard" : ""}.</div>
       ${dig?.on ? `<div class="row"><button class="btn small primary" data-a="hand-show" data-n="${nid}">Show my hand (${dig.hand.length} card${dig.hand.length === 1 ? "" : "s"})</button><button class="btn small" data-a="hand-decline" data-n="${nid}">Decline</button></div>`
@@ -5172,7 +5232,7 @@ function startController(code, pid) {
       .map(([id, e]) => `<option value="${o.id}|${id}">${esc(o.name)}: ${esc(dispName(e))}</option>`)).join("");
     const w = windowState(r), dis = w.ready ? "" : "disabled";
     if (f.scope === "all") return `${w.html}<button class="btn small primary" data-a="air-go" data-id="${r.id}" ${dis}>Airbend them all</button>`;
-    return `${w.html}<select class="fetch-pick" id="ap-${r.id}">${f.scope === "all other" ? `<option value="">Spare none</option>` : ""}${opts}</select>
+    return `${w.html}<select class="fetch-pick" id="ap-${r.id}">${f.scope === "all other" ? `<option value="?">Which creature is spared? (pick one)</option><option value="">Spare none</option>` : ""}${opts}</select>
       <button class="btn small primary" data-a="air-go" data-id="${r.id}" ${dis}>${f.scope === "all other" ? "Airbend the rest" : "Airbend it"}</button>`;
   }
   function airKeep(e) {
@@ -5357,6 +5417,7 @@ function startController(code, pid) {
       update(ref(db, `rooms/${code}`), u);
     }
     clearPending();
+    (ext?.orders || []).forEach(({ oid, o }) => rawOrder(oid, { how: "revertOrder", key: o.key, src: o.src || "an effect" }));
     me = prev;
     if (meta?.rem) reminders = meta.rem;
     if (meta?.dig && dig?.on) { dig = clone(meta.dig); digSave(); setTimeout(() => { try { renderHand(); } catch {} }, 0); } // the card goes back to the digital hand
@@ -5364,6 +5425,7 @@ function startController(code, pid) {
     render();
     await set(ref(db, pPath), prev);
     logTo(code, `↶ ${me.name} undid: ${stepName(meta)}`);
+    resyncWindows();
     toast(`Undid: ${stepName(meta)}`);
   }
   async function doRedo() {
@@ -5372,6 +5434,8 @@ function startController(code, pid) {
     undo.push(clone(me)); undoExt.push(r.ext); undoMeta.push({ ...r.meta, rem: clone(reminders), dig: dig ? clone(dig) : null });
     lifeSeen = r.snap.life ?? START_LIFE;
     if (r.ext?.loss) { const u = {}; Object.entries(r.ext.loss).forEach(([oid, n]) => { u[`players/${oid}/life`] = (room.players?.[oid]?.life ?? START_LIFE) - n; }); update(ref(db, `rooms/${code}`), u); }
+    (r.ext?.orders || []).forEach(({ oid, o }) => update(ref(db, `rooms/${code}/orders/${oid}`), { [newId()]: { ...o, at: Date.now() } })); // send the same orders again
+    setTimeout(resyncWindows, 0);
     me = r.snap; reminders = r.rem || reminders;
     if (r.dig && dig?.on) { dig = clone(r.dig); digSave(); setTimeout(() => { try { renderHand(); } catch {} }, 0); }
     actSeq++;
@@ -5578,9 +5642,28 @@ function startController(code, pid) {
         <div class="log-entry ${l.text.startsWith("⚙") ? "auto" : ""}" style="--lc:${esc(color(l.text) || "var(--line)")}">
           <span class="log-time">${time(l.t)}</span><span>${linkify(l.text, dict)}</span>
         </div>`).join("") : `<p class="muted">Nothing has happened yet.</p>`}</div>
+      <div class="miss-box">${missOpen ? `<textarea id="missNote" class="full" rows="3" placeholder="What did the app miss or get wrong? (e.g. “Blood Artist should have drained when my Squirrel died”)"></textarea>
+        <div class="row"><button class="btn small primary" data-a="miss-send">📨 Send report</button><button class="btn small" data-a="miss-copy">📋 Copy report</button><button class="btn small" data-a="miss-cancel">Cancel</button></div>
+        <div class="mini muted">Sends this log, everyone's board and your open reminders (no hands) so Claude can look into it.</div>`
+        : `<button class="btn small" data-a="miss-open">🤔 Missed a trigger? Report it</button>`}</div>
       <button class="btn wide" data-a="close-modal">Close</button></div>`;
     modal.hidden = false;
   }
+  // 🤔 "Missed a trigger?": a snapshot of the game for Claude to read (log + boards + open reminders)
+  let missOpen = false;
+  function missReport(note) {
+    const entries = Object.values(room?.log || {}).sort((a, b) => a.t - b.t).slice(-120);
+    const board = o => ({ name: o.name, life: o.life ?? START_LIFE,
+      bf: Object.values(o.bf || {}).map(e => dispName(e) + (e.tap ? " (tapped)" : "") + (e.c && Object.keys(e.c).length ? ` [${Object.entries(e.c).map(([k, n]) => `${k}:${n}`).join(",")}]` : "")),
+      tokens: Object.values(o.tokens || {}).filter(t => t.count > 0).map(t => `${t.count}× ${t.name}${t.tapped ? ` (${t.tapped} tapped)` : ""}`),
+      phased: [...Object.values(o.phased?.bf || {}).map(dispName), ...Object.values(o.phased?.tokens || {}).map(t => `${t.count}× ${t.name}`)],
+      air: Object.values(o.air || {}).map(dispName), gy: Object.values(o.gy || {}).map(dispName), pool: o.pool || null });
+    return { at: Date.now(), when: new Date().toString(), v: APP_VERSION, room: code, by: me?.name || "?", note: String(note || "").slice(0, 2000),
+      turnNo: room?.turnNo || 0, turn: room?.players?.[room?.turn]?.name || "", step: tableStep || "",
+      log: entries.map(l => `${new Date(l.t).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}  ${l.text}`),
+      boards: seated(room).map(board), reminders: reminders.map(r => `${r.src}: ${r.text || ""}`).slice(0, 30) };
+  }
+  const missText = r => `TRIGGERNOMICON REPORT ${r.v} · room ${r.room} · ${r.when}\nFrom ${r.by} · turn ${r.turnNo} (${r.turn}${r.step ? `, ${r.step}` : ""})\n\nNOTE: ${r.note || "(none)"}\n\nOPEN REMINDERS:\n${r.reminders.join("\n") || "(none)"}\n\nBOARDS:\n${r.boards.map(b => `${b.name} (${b.life}): ${b.bf.join("; ")}${b.tokens.length ? ` | tokens: ${b.tokens.join("; ")}` : ""}${b.phased.length ? ` | phased out: ${b.phased.join("; ")}` : ""}${b.air.length ? ` | airbent: ${b.air.join("; ")}` : ""}${b.gy.length ? ` | graveyard: ${b.gy.join("; ")}` : ""}`).join("\n")}\n\nLOG (oldest first):\n${r.log.join("\n")}`;
 
   // ----- Search -----
   function renderSearch() {
@@ -6021,6 +6104,7 @@ function startController(code, pid) {
                 <button class="btn small" data-a="pact-lose" data-id="${r.id}">Can't pay → I lose</button>`
               : r.loseFx === "you" ? `<button class="btn small" data-a="lose-me" data-id="${r.id}">💀 I lose</button>`
               : r.loseFx === "target" ? windowState(r).html + opponents().map(o => `<button class="btn small primary" ${windowState(r).ready && !o.prot?.all && !plShroud(o) ? "" : "disabled"} data-a="lose-target" data-id="${r.id}" data-o="${o.id}" style="border-left:4px solid ${esc(o.color)}">💀 ${esc(o.name)}</button>`).join("")
+              : r.phyx ? (() => { const n = (r.phyx.match(/\{/g) || []).length; return Array.from({ length: n + 1 }, (_, k) => `<button class="btn small ${k ? "" : "primary"}" data-a="phyx-go" data-id="${r.id}" data-k="${k}">${k === 0 ? "Paid with mana" : k === n ? `Paid ${2 * k} life${n > 1 ? " (all life)" : ""}` : `${k} with life (−${2 * k}), ${n - k} with mana`}</button>`).join(""); })()
               : r.winAsk ? `<button class="btn small primary" data-a="win-yes" data-id="${r.id}">🏆 Condition met, I win</button>`
               : r.suspCast ? `<button class="btn small primary" data-a="susp-go" data-rid="${r.id}">Cast it</button>`
               : r.instead ? `${digDiscardSel(r.instead.what, "ins-" + r.id)}<button class="btn small primary" data-a="instead-yes" data-id="${r.id}">Done (${esc(r.instead.what.replace(/^discard /, "discarded "))})</button>
@@ -6131,6 +6215,7 @@ function startController(code, pid) {
                   return `<div class="mini">1. Choose up to ${f.n} (targets are picked before the sacrifice):</div><div class="ans-list">${gy.length ? gy.map(([id, e]) => `<label class="mode-check"><input type="checkbox" class="vic-box" data-rid="${r.id}" value="${id}"><span>${esc(dispName(e))}</span></label>`).join("") : `<span class="mini">No ${esc(f.what)} cards in your graveyard (in the app).</span>`}</div>
                     <div class="mini">2. Sacrifice:</div>${sac.length ? `<select class="fetch-pick" id="vic-s-${r.id}">${sac.map(o => `<option value="${o.v}">${esc(o.label)}</option>`).join("")}</select>` : `<span class="mini">Nothing to sacrifice, so nothing returns.</span>`}
                     <button class="btn small primary" data-a="vic-go" data-id="${r.id}" ${sac.length ? "" : "disabled"}>Resolve</button>`; })()
+              : r.revertKey ? `<button class="btn small primary" data-a="rv-back" data-id="${r.id}">↩ Put it back</button><button class="btn small" data-a="rv-keep" data-id="${r.id}">Keep my board as it is</button>`
               : r.ctrAsk ? `<button class="btn small primary" data-a="ca-yes" data-id="${r.id}">Yes, resolve the triggers</button><button class="btn small" data-a="ca-no" data-id="${r.id}">No, just adjusting</button>`
               : r.wbk ? (r.wbk.id ? `<button class="btn small primary" data-a="wbk-go" data-id="${r.id}">Gain control</button>` : `<select class="fetch-pick" id="wbk-${r.id}">${opponents().filter(o => !isOut(o)).flatMap(o => Object.entries(o.bf || {}).filter(([, x]) => /\bCreature\b/.test(x.t || "")).map(([cid, x]) => `<option value="${esc(o.id)}|${esc(cid)}">${esc(o.name)}: ${esc(dispName(x))}</option>`)).join("")}</select><button class="btn small primary" data-a="wbk-go" data-id="${r.id}">Gain control</button>`)
               : r.dmgAsk ? `<label class="mini">Damage <input type="number" min="0" class="x-input" id="dk-${r.id}" value="${r.dmgAsk.n}"></label><button class="btn small primary" data-a="dk-go" data-id="${r.id}">Yes, add that many counters</button><button class="btn small" data-a="dk-no" data-id="${r.id}">No, it was life loss</button>`
@@ -6305,7 +6390,8 @@ function startController(code, pid) {
         ${entries.length ? groups.map(([g, label]) => {
           const list = entries.filter(([, e]) => group(e) === g).sort((a, b) => a[1].n.localeCompare(b[1].n));
           return list.length ? `<div class="grp-title">${label} (${list.length})</div>${list.map(([id, e]) => permRow(id, e)).join("")}` : "";
-        }).join("") : `<p class="muted">Nothing here yet. Search your deck above to play a card.</p>`}
+        }).join("") : phasedList().length ? "" : `<p class="muted">Nothing here yet. Search your deck above to play a card.</p>`}
+        ${phasedList().length ? `<div class="grp-title">👻 Phased out (${phasedList().length})</div><p class="mini">Still yours, but treated as though they don't exist until they phase in at your next untap step.</p>${phasedList().map(n => `<div class="perm phased"><div class="perm-row"><span class="who">${n.cmd ? "⭐ " : ""}${esc(n.label)}</span><span class="att-tag">👻 Phased out</span></div></div>`).join("")}<button class="btn small" data-a="phase-in">Phase in now</button>` : ""}
       </section>`;
 
     // Board tab: suspended cards
@@ -6333,16 +6419,16 @@ function startController(code, pid) {
           ${room.airLock && room.airLock.by !== pid ? `<span class="mini">Locked until ${esc(room.airLock.name)}'s next turn</span>`
             : `<button class="btn small primary" data-a="air-cast" data-id="${id}">Cast for ${manaHtml("{2}")}${e.cmd ? " (no tax)" : ""}</button>`}
           ${e.cmd ? `<button class="btn small" data-a="air-cmd" data-id="${id}">→ Command zone</button>` : ""}
+          <button class="btn small" data-a="air-back" data-id="${id}" title="It shouldn't have been airbended">↩ Back on the battlefield</button>
           <button class="btn small ghost" data-a="air-drop" data-id="${id}" aria-label="Leave in exile">✕</button>
         </div>`).join("")}
       </section>` : "";
 
     const ph = me.phased, phList = [...Object.values(ph?.bf || {}).map(dispName), ...Object.values(ph?.tokens || {}).map(t => `${t.count} ${t.name}`)];
-    $("zoneList").innerHTML = (phList.length || me.prot ? `<section class="card phased-card">
+    $("zoneList").innerHTML = (me.prot ? `<section class="card phased-card">
       <h3>👻 Phased out${me.prot ? ` · 🛡 ${esc(me.prot.src)}` : ""}</h3>
       ${me.prot ? `<p class="mini">${me.prot.all ? "Protection from everything" : ""}${me.prot.all && me.prot.life ? " · " : ""}${me.prot.life ? "your life total can't change" : ""} until your next turn.</p>` : ""}
-      ${phList.length ? `<p class="mini">Treated as though they don't exist. They phase in at your next untap step.</p><div class="ans-list">${phList.map(n => `<span class="pill">${esc(n)}</span>`).join("")}</div>
-      <button class="btn small" data-a="phase-in">Phase in now</button>` : ""}</section>` : "") + (me.ring?.n ? `<section class="card ring-card">
+      </section>` : "") + (me.ring?.n ? `<section class="card ring-card">
       <h3>💍 The Ring has tempted you ×${me.ring.n}</h3>
       <p class="mini">Ring-bearer: <b>${ringBearer(me) ? esc(ringBearer(me).name) : "none (choose one the next time the Ring tempts you)"}</b></p>
       <ol class="mini ring-list">${RING_LEVELS.slice(0, ringLevel(me)).map(t => `<li>${esc(t)}</li>`).join("")}</ol></section>` : "") + (tab === "hand" ? "" : zonesHtml());
@@ -7200,6 +7286,21 @@ function startController(code, pid) {
       case "rem-up": { const i = reminders.findIndex(x => x.id === b.dataset.id); if (i > 0) { const [r] = reminders.splice(i, 1); reminders.unshift(r); } render(); break; }
       case "auto": auto = !auto; store.set("mtga_auto", auto ? "on" : "off"); render(); toast(`Auto triggers ${auto ? "on" : "off"}`); break;
       case "log": showLog(); break;
+      case "miss-open": missOpen = true; showLog(); setTimeout(() => document.getElementById("missNote")?.focus(), 50); break;
+      case "miss-cancel": missOpen = false; showLog(); break;
+      case "miss-copy": case "miss-send": (async () => {
+        const r = missReport(document.getElementById("missNote")?.value || ""), txt = missText(r);
+        const copy = async () => { try { await navigator.clipboard.writeText(txt); return true; } catch { return false; } };
+        if (b.dataset.a === "miss-copy") { toast(await copy() ? "📋 Report copied: paste it to Claude" : "Couldn't copy on this phone"); return; }
+        const key = `${code}-${Date.now().toString(36)}`;
+        let saved = "";
+        try { await set(ref(db, `reports/${key}`), r); saved = `reports/${key}`; } catch {}
+        if (!saved) try { await set(ref(db, `rooms/${code}/reports/${key}`), r); saved = `rooms/${code}/reports/${key}`; } catch {}
+        const copied = await copy();
+        missOpen = false; showLog();
+        toast(saved ? `📨 Report saved (${key})${copied ? " and copied" : ""}. Tell Claude: “check report ${key}”` : copied ? "Couldn't save it online, but it's copied: paste it to Claude" : "Couldn't save or copy the report");
+        logTo(code, `🤔 ${me.name} reported a missed trigger${r.note ? `: ${r.note.slice(0, 120)}` : ""}`);
+      })(); break;
       case "rem-jump": window.scrollTo({ top: 0, behavior: "smooth" }); break;
       case "view-token": showToken(b.dataset.k); break;
       case "activate": activate(b.dataset.id, Number(b.dataset.i)); break;
@@ -7966,6 +8067,14 @@ function startController(code, pid) {
         reminders = reminders.filter(x => x !== r);
         if (b.dataset.a === "bla-yes") { bloodSkip += r.bloodAsk; mutate(p => { p.life = (p.life ?? START_LIFE) - r.bloodAsk; }); logTo(code, `🩸 ${r.src}: ${me.name} loses ${r.bloodAsk} more`); }
         else { const t = room.turnNo || 0; if (me.lifeLost?.t === t) mutate(p => { p.lifeLost.n = Math.max(0, (p.lifeLost.n || 0) - 0); }, true); render(); }
+        break;
+      }
+      case "rv-back": case "rv-keep": {
+        const r = reminders.find(x => x.id === b.dataset.id); if (!r?.revertKey) break;
+        reminders = reminders.filter(x => x !== r);
+        const sv = orderSnaps.get(r.revertKey);
+        if (b.dataset.a === "rv-back" && sv) { orderSnaps.delete(r.revertKey); logTo(code, `↩ ${me.name}'s board put back (${r.src})`); mutate(p => { Object.keys(p).forEach(k => delete p[k]); Object.assign(p, clone(sv.snap)); }); }
+        else render();
         break;
       }
       case "ca-yes": case "ca-no": {
@@ -9213,6 +9322,15 @@ function startController(code, pid) {
       }
       case "mana-mode": trackMana = !trackMana; store.set("mtga_mana", trackMana ? "on" : "off"); toast(trackMana ? "Mana tracking on: ⚡ buttons tap into your mana pool" : "Mana tracking off"); render(); break;
       case "pool-add": poolAdd(`{${b.dataset.c}}`); render(); break;
+      case "phyx-go": { // Phyrexian mana: k symbols paid with 2 life each, the rest with mana (from the pool if it's tracked)
+        const r = reminders.find(x => x.id === b.dataset.id); if (!r) break;
+        const k = Number(b.dataset.k) || 0, syms = r.phyx.match(/\{[^}]+\}/g) || [], life = 2 * k;
+        reminders = reminders.filter(x => x !== r);
+        if (life) { mutate(p => { p.life = (p.life ?? START_LIFE) - life; }); logTo(code, `${me.name} paid ${life} life for ${r.src}'s Phyrexian mana`); }
+        const rest = syms.slice(k).map(x => x.replace("/P", "")).join("");
+        if (rest) { if (me.pool && Object.keys(me.pool).length) payPool(rest, `${r.src} (Phyrexian mana)`); else logTo(code, `${me.name} paid ${rest} for ${r.src}'s Phyrexian mana`); }
+        render(); break;
+      }
       case "pool-clear": mutate(p => { delete p.pool; delete p.poolC; delete p.poolHaste; delete p.poolHasteSrc; }); render(); break;
       case "pool-spend": {
         const c = b.dataset.c, k = b.dataset.combat ? "poolC" : "pool";
@@ -9382,8 +9500,17 @@ function startController(code, pid) {
       case "air-go": {
         const r = reminders.find(x => x.id === b.dataset.id);
         if (r && !windowState(r).ready) break;
+        const apv = document.getElementById(`ap-${r?.id}`)?.value;
+        if (r && apv === "?") { toast("Pick the creature to spare first (or “Spare none”)."); break; }
         if (r) clearWindow(r);
-        if (r) airbendMany(r, document.getElementById(`ap-${r.id}`)?.value || "");
+        if (r) airbendMany(r, apv || "");
+        break;
+      }
+      case "air-back": {
+        const e = me.air?.[b.dataset.id];
+        if (!e) break;
+        logTo(code, `↩ ${me.name}: ${dispName(e)} back on the battlefield (wasn't airbended)`);
+        act([], p => { const x = p.air?.[b.dataset.id]; if (!x) return; delete p.air[b.dataset.id]; p.bf ||= {}; const w = x.was || { n: x.n, t: x.t, m: x.m, img: x.img, ...(x.nick ? { nick: x.nick } : {}), ...(x.o ? { o: x.o } : {}), ...(x.cmd ? { cmd: true } : {}) }; delete w.att; p.bf[b.dataset.id] = w; });
         break;
       }
       case "air-cmd": {
@@ -9608,6 +9735,7 @@ function startController(code, pid) {
         const aName = (n.times || 1) > 1 ? `one ${a.name}` : n.src; // a group of tokens: one of them was blocked
         const result = bl.length === 1 ? `${dies.length ? `${bl[0].name} dies` : `${bl[0].name} survives`}; ${aName} ${aDies ? "dies" : "survives"}` : `${aName} ${aDies ? "dies" : "survives"}; ${n.from} splits its ${total} damage among the blockers`;
         logTo(code, `🛡 ${me.name} blocked ${n.from}'s ${aName} (${a.p}/${a.t}) with ${names}: ${result}${tramp ? ` · ${tramp} tramples over` : ""}`);
+        mutate(p => { const k = tableCombat; if (p.blk?.k !== k) p.blk = { k, u: {} }; p.blk.u ||= {}; bl.forEach(x => { const key = `${x.kind}:${x.id}`; p.blk.u[key] = (p.blk.u[key] || 0) + 1; }); });
         if (n.fromId) sendNote(n.fromId, { text: `${me.name} blocked your ${aName} with ${names}. ${bl.length === 1 ? (aDies ? `Your ${aName} should die` : `Your ${aName} survives`) + (dies.length ? ` and kills ${bl[0].name}` : "") : `${aDies ? `Your ${aName} should die. ` : ""}You split its ${total} damage among the blockers`}${tramp ? `; ${tramp} trample damage hits ${me.name}` : ""}.`, src: "Blocks" });
         if (n.cardN && n.fromId) sendOrders({ [n.fromId]: {} }, { how: "blockedDmg", cardN: n.cardN, src: n.src, dmg: Math.max(0, total - tramp), victim: shortNames });
         const autoDie = bl.length === 1 && dies.length ? dies[0] : null; // one blocker and it clearly dies: send it to the graveyard now (Undo if a trick changes that)
