@@ -630,3 +630,5 @@ body.wide .side-table > :not(.tpanel) { grid-column: 1 / -1; }
 #remBox > .hit-box:has([data-a="hit-take"]) { order: 2; }
 .miss-box { margin: 8px 0; display: flex; flex-direction: column; gap: 6px; }
 .miss-box textarea { width: 100%; box-sizing: border-box; font: inherit; }
+/* "how many tokens block?": a real number box, not an 18px dot */
+.mode-check input.blk-num { width: 3.6em; height: 34px; margin-top: 0; text-align: center; font-size: 16px; }
