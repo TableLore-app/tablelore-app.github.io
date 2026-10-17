@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261016g";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016g";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016g";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016g";
+import { firebaseConfig } from "./config.js?v=20261016h";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261016h";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261016h";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261016h";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -752,7 +752,7 @@ async function resetGame(code) {
 // Selfless Squire / Willbreaker trigger text (used by the card buttons and the trigger hooks)
 const SQUIRE_RE = /^(?:[^—\n]{1,40} — )?whenever damage that would be dealt to you is prevented, put that many \+1\/\+1 counters on (?:this creature|[^.]+)\.?$/im;
 const WILLB_RE = /^(?:[^—\n]{1,40} — )?whenever a creature an opponent controls becomes the target of a spell or ability you control, gain control of that creature/im;
-const APP_VERSION = "2026.10.16g";
+const APP_VERSION = "2026.10.16h";
 
 // Brand: the clasped tome emblem (original art) and the Triggernomicon wordmark
 const TOME_SVG = `<svg class="tome" viewBox="0 0 100 118" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M18 6 H88 a4 4 0 0 1 4 4 V104 a4 4 0 0 1 -4 4 H18 a10 10 0 0 1 -10 -10 V16 a10 10 0 0 1 10 -10Z"/><path d="M8 98 a10 10 0 0 1 10 -10 H92" stroke-width="2"/><line x1="20" y1="7" x2="20" y2="88" stroke-width="2"/><path d="M92 50 H100 V64 H92" stroke-width="2.6"/><path d="M80 6 L92 6 L92 18" stroke-width="2"/><path d="M80 88 L92 88 L92 76" stroke-width="2"/><g class="emb" stroke="currentColor" stroke-width="1.6"><line x1="56.0" y1="25.5" x2="56.0" y2="19.0"/><line x1="62.2" y1="23.8" x2="63.2" y2="20.0"/><line x1="68.0" y1="26.2" x2="70.0" y2="22.8"/><line x1="71.2" y1="31.8" x2="75.8" y2="27.2"/><line x1="76.8" y1="35.0" x2="80.2" y2="33.0"/><line x1="79.2" y1="40.8" x2="83.0" y2="39.8"/><line x1="77.5" y1="47.0" x2="84.0" y2="47.0"/><line x1="79.2" y1="53.2" x2="83.0" y2="54.2"/><line x1="76.8" y1="59.0" x2="80.2" y2="61.0"/><line x1="71.2" y1="62.2" x2="75.8" y2="66.8"/><line x1="68.0" y1="67.8" x2="70.0" y2="71.2"/><line x1="62.2" y1="70.2" x2="63.2" y2="74.0"/><line x1="56.0" y1="68.5" x2="56.0" y2="75.0"/><line x1="49.8" y1="70.2" x2="48.8" y2="74.0"/><line x1="44.0" y1="67.8" x2="42.0" y2="71.2"/><line x1="40.8" y1="62.2" x2="36.2" y2="66.8"/><line x1="35.2" y1="59.0" x2="31.8" y2="61.0"/><line x1="32.8" y1="53.2" x2="29.0" y2="54.2"/><line x1="34.5" y1="47.0" x2="28.0" y2="47.0"/><line x1="32.8" y1="40.8" x2="29.0" y2="39.8"/><line x1="35.2" y1="35.0" x2="31.8" y2="33.0"/><line x1="40.8" y1="31.8" x2="36.2" y2="27.2"/><line x1="44.0" y1="26.2" x2="42.0" y2="22.8"/><line x1="49.8" y1="23.8" x2="48.8" y2="20.0"/></g><circle class="emb" stroke="currentColor" cx="56" cy="47" r="20" stroke-width="1.4"/></g><path class="emb" fill="currentColor" d="M56 32 C57.24 42.05 59.00 44.00 71 47 C59.00 50.00 57.24 51.95 56 62 C54.76 51.95 53.00 50.00 41 47 C53.00 44.00 54.76 42.05 56 32Z"/></svg>`;
@@ -1788,8 +1788,8 @@ function startController(code, pid) {
     return { left: Math.max(0, max - drawn), max, src };
   }
   // Tell the table you drew; caps the number when a draw limit is in play (returns how many were logged)
-  function broadcastDraw(n = 1, why = "", manual = false) {
-    if (dig?.on && n > 0 && why !== "digital-done") { digDraw(n); setTimeout(renderHand, 0); }
+  function broadcastDraw(n = 1, why = "", manual = false, already = false) {
+    if (dig?.on && n > 0 && !already && why !== "digital-done") { digDraw(n); setTimeout(renderHand, 0); }
     const st = why !== "draw step" ? boardEnv().steal[0] : null;
     if (st && n > 0) {
       const instead = st.gives === "draw" ? `${st.owner} draws ${n === 1 ? "a card" : n + " cards"} instead` : st.gives === "treasure" ? `${st.owner} creates ${n === 1 ? "a Treasure" : n + " Treasures"} instead` : st.then;
@@ -2820,7 +2820,7 @@ function startController(code, pid) {
       if (spent > 0) { mutate(p => { p.spentT = { t, n: prev + spent }; }, true); if (Object.values(me.bf || {}).some(x => /whenever you expend \d+/i.test(x.o || lookupCard(x.n)?.o || ""))) setTimeout(() => act([{ type: "expend", prev, n: prev + spent }]), 0); }
       if (fz?.z === "ex") Object.values(me.bf || {}).forEach(x => { const m = String(x.o || lookupCard(x.n)?.o || "").match(/whenever you (?:play a land from exile or )?cast a spell from exile, you gain (\d+) life/i); if (m) setTimeout(() => act([{ type: "effects", effs: [{ k: "gain", n: Number(m[1]) }], times: 1, count: 1, src: dispName(x) }]), 0); });
     }
-    if (castKey && !opts.copy && !opts.free) payForCast(card, costOf(card));
+    if (castKey && !opts.copy && !opts.free) payForCast(card, opts.altCost && /^\{/.test(opts.altCost) ? opts.altCost : costOf(card)); // warp / dash / blitz / bestow pay their own cost
     if (castKey && castHaste) { opts = { ...opts, haste: castHaste }; castHaste = null; }
     if (castKey && !opts.copy && !/\bCreature\b/.test(card.t || "")) setTimeout(() => eqCounterTrigger("noncreature spell"), 0);
     if (castKey && !opts.copy) { const ext = Object.values(me.bf || {}).filter(e => /^Extort\b/m.test(e.o || lookupCard(e.n)?.o || "")); if (ext.length) { reminders.push({ id: newId(), src: ext.length > 1 ? `Extort ×${ext.length}` : `${dispName(ext[0])} (extort)`, text: `You may pay {W/B}${ext.length > 1 ? ` up to ${ext.length} times` : ""}. Each time: each opponent loses 1 life and you gain that much.`, times: 1, extort: ext.length }); setTimeout(render, 0); } }
@@ -4154,7 +4154,8 @@ function startController(code, pid) {
     let max = 7; const why = [];
     Object.values(me.bf || {}).forEach(e => { const m = String(e.o || lookupCard(e.n)?.o || "").match(/your maximum hand size is (increased|reduced) by (\w+)/i); if (m) { const d = ({ one: 1, two: 2, three: 3, four: 4 })[m[2].toLowerCase()] || Number(m[2]) || 0; max += m[1] === "increased" ? d : -d; why.push(dispName(e)); } });
     all.filter(o => o.id !== pid).forEach(o => Object.values(o.bf || {}).forEach(e => { const m = String(e.o || "").match(/each opponent's maximum hand size is reduced by (\w+)/i); if (m) { max -= ({ one: 1, two: 2, three: 3 })[m[1].toLowerCase()] || Number(m[1]) || 0; why.push(`${o.name}'s ${dispName(e)}`); } }));
-    reminders.push({ id: newId(), src: "Cleanup", text: `Discard down to ${max} card${max === 1 ? "" : "s"} in hand.`, times: 1, note: why.length ? `Changed by ${why.join(", ")}.` : "" });
+    if (dig?.on && dig.hand.length <= Math.max(0, max)) return; // the digital hand knows: nothing to discard
+    reminders.push({ id: newId(), src: "Cleanup", text: `Discard down to ${max} card${max === 1 ? "" : "s"} in hand.${dig?.on ? ` You have ${dig.hand.length}: discard ${dig.hand.length - Math.max(0, max)} (🗑 in your hand).` : ""}`, times: 1, note: why.length ? `Changed by ${why.join(", ")}.` : "" });
     render();
   }
   // Mana boosters on the table when a land is tapped: Mana Reflection, Caged Sun, Zendikar Resurgent, Mana Flare…
@@ -5633,8 +5634,8 @@ function startController(code, pid) {
     { const mu = o.match(/^Mutate ((?:\{[^}]+\})+)/m); if (mu) out.push({ kind: "mutate", label: `Mutate ${mu[1]}`, cost: mu[1] }); }
     { const nj = o.match(/^(Ninjutsu|Commander ninjutsu) ((?:\{[^}]+\})+)/m); if (nj) out.push({ kind: "ninjutsu", label: `${nj[1]} ${nj[2]}`, cost: nj[2] });
       else if (/\bCreature\b/.test(c.t || "")) { const g = Object.values(me?.bf || {}).map(x => String(x.o || lookupCard(x.n)?.o || "").match(/^Each creature card in your hand has ninjutsu ((?:\{[^}]+\})+)/m)).find(Boolean); if (g) out.push({ kind: "ninjutsu", label: `Ninjutsu ${g[1]} (granted)`, cost: g[1] }); } }
-    { const bz = o.match(/^Blitz ((?:\{[^}]+\})+)/m), hz = !bz && /\bCreature\b/.test(c.t || "") && manaValue(c.m || "") >= 4 && Object.values(me?.bf || {}).find(x => /each creature spell you cast with mana value 4 or greater has blitz/i.test(x.o || lookupCard(x.n)?.o || ""));
-      if (bz || hz) { const casts = hz ? Object.values(me.tax || {}).reduce((a, n) => a + (n || 0), 0) : 0; out.push({ kind: "blitz", label: `Blitz ${bz ? bz[1] : c.m}${hz ? ` (${dispName(hz)}${casts ? `, −{${casts}}` : ""})` : ""}`, cost: bz ? bz[1] : c.m }); } }
+    { const bz = o.match(/^Blitz[ —]((?:\{[^}]+\})+)(?:, pay (\d+) life)?/mi), hz = !bz && /\bCreature\b/.test(c.t || "") && manaValue(c.m || "") >= 4 && Object.values(me?.bf || {}).find(x => /each creature spell you cast with mana value 4 or greater has blitz/i.test(x.o || lookupCard(x.n)?.o || ""));
+      if (bz || hz) { const casts = hz ? Object.values(me.tax || {}).reduce((a, n) => a + (n || 0), 0) : 0; out.push({ kind: "blitz", life: bz?.[2] ? Number(bz[2]) : 0, label: `Blitz ${bz ? bz[1] : c.m}${bz?.[2] ? `, ${bz[2]} life` : ""}${hz ? ` (${dispName(hz)}${casts ? `, −{${casts}}` : ""})` : ""}`, cost: bz ? bz[1] : c.m }); } }
     const lc = o.match(/^(Basic land|[A-Z][a-z]+)cycling\b/m);
     if (lc) out.push({ kind: "landcycle", label: `${lc[1]}cycle`, type: lc[1].toLowerCase() });
     else if (/^Cycling\b/m.test(o)) out.push({ kind: "cycle", label: "Cycle" });
@@ -5668,16 +5669,16 @@ function startController(code, pid) {
     }
     if (h.kind === "ninjutsu") {
       const t = room.turnNo || 0, atk = Object.entries(me.bf || {}).filter(([id, e]) => me.attacked?.turnNo === t && me.attacked.bf?.[id] && /\bCreature\b/.test(e.t || ""));
-      reminders.push({ id: newId(), src: name, text: `${h.label}: return an unblocked attacker you control to hand; ${name} enters tapped and attacking.`, times: 1, ninPick: { card: c, list: atk.map(([id, e]) => [id, dispName(e)]) } });
+      reminders.push({ id: newId(), src: name, text: `${h.label}: return an unblocked attacker you control to hand; ${name} enters tapped and attacking.`, times: 1, ninPick: { card: c, cost: h.cost, list: atk.map(([id, e]) => [id, dispName(e)]) }, ...(dig?.on ? { digBack: c.n } : {}) });
       Object.entries(me.bf || {}).forEach(([sid, x]) => { const m = String(x.o || lookupCard(x.n)?.o || "").match(/^Whenever you activate a ninjutsu ability, ([^\n]+)$/m); if (m) reminders.push(normalizeRem({ id: newId(), src: dispName(x), srcId: sid, text: m[1][0].toUpperCase() + m[1].slice(1), times: 1 })); });
       render(); return;
     }
-    if (h.kind === "blitz") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its blitz cost ${h.cost} (haste; sacrifice it at the next end step, draw a card when it dies)`); playCard(c, { blitz: true, haste: "blitz", sacNext: "blitz" }); return; }
-    if (h.kind === "mutate") { if (!okToCast(c)) return; reminders.push({ id: newId(), src: name, text: `Mutate (${h.cost}): put it on top of or under a non-Human creature you own.`, times: 1, mutPick: { card: { n: c.n, t: c.t || "", m: c.m || "", o: c.o || "", p: c.p ?? null, tg: c.tg ?? null, img: c.img || "" } } }); render(); return; }
-    if (h.kind === "bestow") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its bestow cost ${h.cost}`); playCard({ ...c, t: "Enchantment — Aura", bestowT: c.t }, {}); setTimeout(() => { const id = Object.keys(me.bf || {}).reverse().find(k => me.bf[k].n === c.n && me.bf[k].bestowT); if (id) reminders.push({ id: newId(), src: name, text: "Bestowed: attach it to a creature (open its row → Enchant creature). If that creature leaves, it becomes a creature again.", times: 1 }); render(); }, 0); return; }
+    if (h.kind === "blitz") { if (!okToCast(c)) return; if (h.life) { mutate(p => { p.life = (p.life ?? START_LIFE) - h.life; }); logTo(code, `${me.name} paid ${h.life} life for ${name}'s blitz`); } logTo(code, `${me.name} cast ${name} for its blitz cost ${h.cost} (haste; sacrifice it at the next end step, draw a card when it dies)`); playCard(c, { blitz: true, haste: "blitz", sacNext: "blitz", altCost: h.cost }); return; }
+    if (h.kind === "mutate") { if (!okToCast(c)) return; reminders.push({ id: newId(), src: name, text: `Mutate (${h.cost}): put it on top of or under a non-Human creature you own.`, times: 1, mutPick: { card: { n: c.n, t: c.t || "", m: c.m || "", o: c.o || "", p: c.p ?? null, tg: c.tg ?? null, img: c.img || "" }, cost: h.cost }, ...(dig?.on ? { digBack: c.n } : {}) }); render(); return; }
+    if (h.kind === "bestow") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its bestow cost ${h.cost}`); playCard({ ...c, t: "Enchantment — Aura", bestowT: c.t }, { altCost: h.cost }); setTimeout(() => { const id = Object.keys(me.bf || {}).reverse().find(k => me.bf[k].n === c.n && me.bf[k].bestowT); if (id) reminders.push({ id: newId(), src: name, text: "Bestowed: attach it to a creature (open its row → Enchant creature). If that creature leaves, it becomes a creature again.", times: 1 }); render(); }, 0); return; }
     if (h.kind === "facedown") { if (!okToCast(c)) return; playFaceDown({ card: c, how: h.how, cost: h.cost }); return; }
-    if (h.kind === "dash") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its dash cost ${h.cost} (haste; back to hand at end step)`); playCard(c, { dash: true }); return; }
-    if (h.kind === "warp") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its warp cost ${h.cost} (exiled at the next end step; castable later)`); playCard(c, { warp: true }); return; }
+    if (h.kind === "dash") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its dash cost ${h.cost} (haste; back to hand at end step)`); playCard(c, { dash: true, altCost: h.cost }); return; }
+    if (h.kind === "warp") { if (!okToCast(c)) return; logTo(code, `${me.name} cast ${name} for its warp cost ${h.cost} (exiled at the next end step; castable later)`); playCard(c, { warp: true, altCost: h.cost }); return; }
     if (h.kind === "backFace") { const fc = faceCard(c, 1); if (fc && (/\bLand\b/.test(fc.t || "") || okToCast(fc))) playCard(fc); return; }
     if (h.kind === "foretell") { // pay {2}, exile it face down; cast it on a later turn for its foretell cost
       act([], p => { p.ex ||= {}; p.ex[newId()] = { n: c.n, t: c.t || "", m: c.m || "", img: c.img || "", ...(c.o ? { o: c.o } : {}), foretold: { cost: h.cost, turnNo: room.turnNo || 0 }, at: Date.now() }; });
@@ -7912,7 +7913,7 @@ function startController(code, pid) {
       case "dig-firstdraw": { store.set("mtga_firstdraw", b.dataset.v === "on" ? "on" : "off"); renderHand(); break; }
       case "dig-mullrule": { mullRule = b.dataset.r === "official" ? "official" : "free"; store.set("mtga_mullrule", mullRule); renderHand(); break; }
       case "dig-draw": { broadcastDraw(1, "", true); renderHand(); break; }
-      case "dig-drawbot": { const k = digDraw(1, true); if (k) broadcastDraw(1, "digital-done", true); renderHand(); break; }
+      case "dig-drawbot": { const k = digDraw(1, true); if (k) broadcastDraw(1, "from the bottom", true, true); renderHand(); break; }
       case "dig-shuffle": { if (!dig) break; digShuffle(dig.lib); digSave(); logTo(code, `🔀 ${me.name} shuffled their library`); renderHand(); break; }
       case "dig-peek": { if (!dig) break; const n = Math.max(1, Math.min(20, Number(prompt("Look at how many cards from the top?", "3")) || 0)); if (!n) break; dig.peek = n; digSave(); renderHand(); break; }
       case "dig-peek-done": { if (!dig) break; dig.peek = 0; digSave(); renderHand(); break; }
@@ -8476,7 +8477,9 @@ function startController(code, pid) {
           const exN = escape ? escapeExileN(c) : 0;
           if (escape && Object.keys(me.gy || {}).length - 1 < exN) { toast(`Escape needs ${exN} other cards in your graveyard.`); break; }
           logTo(code, `${me.name}: ${dispName(c)} from ${where}${alt ? ` (${alt})` : ""}`);
-          playCard({ ...c, ...(e.o && !c.o ? { o: e.o } : {}) }, { fromZone: { z, id }, ...(e.own ? { own: e.own } : {}), ...(to === "bf" ? { via: `from ${where}` } : {}), ...(/^(Flashback|Jump-start)$/.test(alt) ? { exileAfter: true } : {}) });
+          const co = String(c.o || e.o || ""), cm = re => (co.match(re) || [])[1] || ""; // pay the alternative cost from the pool, not the printed one
+          const altCost = z === "ex" && e.foretold ? e.foretold.cost || cm(/^Foretell ((?:\{[^}]+\})+)/m) : alt === "Flashback" ? cm(/^Flashback ((?:\{[^}]+\})+)/m) : /^Escape/.test(alt) ? cm(/^Escape—((?:\{[^}]+\})+)/m) : alt === "Mayhem" ? cm(/^Mayhem ((?:\{[^}]+\})+)/m) : "";
+          playCard({ ...c, ...(e.o && !c.o ? { o: e.o } : {}) }, { fromZone: { z, id }, ...(altCost ? { altCost } : {}), ...(e.own ? { own: e.own } : {}), ...(to === "bf" ? { via: `from ${where}` } : {}), ...(/^(Flashback|Jump-start)$/.test(alt) ? { exileAfter: true } : {}) });
           if (exN) { reminders.push({ id: newId(), src: dispName(c), text: `Escape cost: exile ${exN} other cards from your graveyard.`, times: 1, escapeEx: { n: exN } }); render(); }
           const fbs = alt === "Flashback" && String(c.o || "").match(/^Flashback—Sacrifice (two|three|four|five|\d+) (creature|artifact|permanent|land)s/m);
           if (fbs) { reminders.push(normalizeRem({ id: newId(), src: `${dispName(c)} (flashback)`, text: `Flashback cost: sacrifice ${fbs[1]} ${fbs[2]}s.`, times: 1, sacNPick: { n: ({ two: 2, three: 3, four: 4, five: 5 })[fbs[1].toLowerCase()] || Number(fbs[1]), what: fbs[2], id: null } })); render(); }
@@ -8871,6 +8874,7 @@ function startController(code, pid) {
         const tid = b.dataset.t, back = tid && me.bf?.[tid];
         if (back) moveOut(tid, "Hand");
         logTo(code, `🥷 ${me.name}: ninjutsu — ${dispName(r.ninPick.card)} enters tapped and attacking${back ? ` (${dispName(back)} returned to hand)` : ""}`);
+        if (r.ninPick.cost && me.pool && Object.keys(me.pool).length) payPool(r.ninPick.cost, `${dispName(r.ninPick.card)} (ninjutsu)`);
         playCard(r.ninPick.card, { via: "ninjutsu", tapped: true });
         render(); break;
       }
@@ -9017,6 +9021,7 @@ function startController(code, pid) {
         if (!r?.mutPick || !e) break;
         const card = r.mutPick.card, top = b.dataset.v === "top";
         reminders = reminders.filter(x => x !== r);
+        if (r.mutPick.cost && me.pool && Object.keys(me.pool).length) payPool(r.mutPick.cost, `${card.n} (mutate)`);
         broadcastCast(card);
         const own = x => ({ n: x.n, t: x.t || "", m: x.m || "", o: x.mutO ?? x.o ?? lookupCard(x.n)?.o ?? "", p: x.p ?? null, tg: x.tg ?? null, img: x.img || "" });
         mutate(p => { const x = p.bf?.[tid]; if (!x) return;
@@ -9899,6 +9904,7 @@ function startController(code, pid) {
       }
       case "rem-dismiss": {
         const r = reminders.find(x => x.id === b.dataset.id);
+        if (r?.digBack && dig?.on) { dig.hand.push(r.digBack); digSave(); setTimeout(renderHand, 0); toast(`${r.src} went back to your hand`); } // ninjutsu / mutate not used after all
         if (r) clearWindow(r);
         const dm = r && !r.effs?.length && !r.punish && r.text.match(/^(?:you )?draw (a|one|two|three|\d+) cards?\.?$/i);
         if (dm) broadcastDraw(dm[1] === "a" || dm[1] === "one" ? 1 : dm[1] === "two" ? 2 : dm[1] === "three" ? 3 : Number(dm[1]), r.src);
