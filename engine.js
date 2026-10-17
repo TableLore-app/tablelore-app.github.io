@@ -297,7 +297,8 @@ function parseEffects0(text, cardName = "") {
   const ce = !ceList && text.match(/\bput (a|an|one|two|three|x|\d+) ([+−-]\d+\/[+−-]\d+|[a-z]+) counters? on each (other )?([a-z ]*?(?:creature|permanent|artifact|token))s?( you control)?( that entered (?:the battlefield )?this turn)?\b/i);
   const ce2 = !ce && (ceList || text.match(/\bput (a|an|one|two|three|\d+) ([+−-]\d+\/[+−-]\d+|[a-z]+) counters? on each ([a-z, ]+?) you control( that entered (?:the battlefield )?this turn)?(?:\.|$)/i));
   if (ce2) effs.push({ k: "countersEach", n: num(ce2[1]) || 1, key: counterKey(ce2[2]), label: ce2[2], other: false, what: ce2[3], filter: { ...parseTargetFilter(ce2[3].replace(/,?\s+(?:and\/)?or\s+/g, ", ")), controller: "you" }, entered: !!ce2[4], everyone: false });
-  if (ce) effs.push({ k: "countersEach", n: /^x$/i.test(ce[1]) ? "X" : num(ce[1]) || 1, key: counterKey(ce[2]), label: ce[2], other: !!ce[3], what: ce[4], filter: parseTargetFilter(ce[4]), entered: !!ce[6], everyone: !ce[5] });
+  if (ce) { const opp = !ce[5] && /^\s*(?:your opponents control|an opponent controls|you don't control|each opponent controls)\b/i.test(text.slice(ce.index + ce[0].length)); // Archfiend of Ifnir: not yours
+    effs.push({ k: "countersEach", n: /^x$/i.test(ce[1]) ? "X" : num(ce[1]) || 1, key: counterKey(ce[2]), label: ce[2], other: !!ce[3], what: ce[4], filter: parseTargetFilter(ce[4]), entered: !!ce[6], everyone: !ce[5], ...(opp ? { oppsOnly: true } : {}) }); }
   if (/\bproliferate\b/i.test(text)) effs.push({ k: "prolif" });
   // Counters on a target: "put two +1/+1 counters on target creature", "distribute two +1/+1 counters among one or two target creatures you control"
   const dc = text.match(/\bdistribute (two|three|four|five|\d+) ([+−-]\d+\/[+−-]\d+|[a-z]+) counters among [^.]*?target ([a-z ]+?)s?( you control)?(?:\.|$)/i);
@@ -677,6 +678,7 @@ function parseCond(cond, cardName) {
   if (/^you put one or more -1\/-1 counters on a creature$/.test(c)) return { ev: "m1m1put" };
   if (/^(?:one or more |a )?-1\/-1 counters? (?:is|are) put on (?:a|one or more) creatures?$/.test(c)) return { ev: "m1m1put", check: true, askNote: "Fires on -1/-1 counters you put with the app; add any others by hand." }; // Flourishing Defenses, Wickersmith's Tools (your own counters; others' by hand)
   if (/^you discard (a|one or more) cards?$/.test(c)) return { ev: "discard", once: /one or more/.test(c) };
+  if (/^you cycle or discard (?:another|a) card$/.test(c)) return { ev: "discard", once: false }; // Archfiend of Ifnir (cycling is caught where you cycle)
   if (/^an opponent discards (a|one or more) cards?$/.test(c)) return { ev: "oppdiscard", once: /one or more/.test(c) };
   if (c === `${short} dies` || c === `${cardName.split("#")[0].split(" // ")[0].toLowerCase()} dies` || /^this (creature|permanent) dies$/.test(c)) return { ev: "selfdies" };
   if (/^you choose a creature as your ring-bearer$/.test(c)) return { ev: "ringbearer" };
@@ -1334,7 +1336,7 @@ export function runEvents(p, events, ctx, { enabled = true, lookup, env = null, 
         if (f.k === "countersEach" && f.n === "X") { ctx.remind.push({ src, srcId, text: `Put X ${f.label} counters on each ${f.what}${f.everyone ? "" : " you control"}.`, countersX: f, times: 1 }); continue; }
         if (f.k === "countersEach") {
           let cards = 0, toks = 0, per = 0;
-          Object.entries(p.bf || {}).forEach(([id, e]) => {
+          Object.entries(f.oppsOnly ? {} : p.bf || {}).forEach(([id, e]) => {
             if (f.other && id === srcId) return;
             if (!permanentMatches(e, f.filter)) return;
             if (f.entered && e.et !== ctx.turnNo) return;
@@ -1342,14 +1344,14 @@ export function runEvents(p, events, ctx, { enabled = true, lookup, env = null, 
             e.c ||= {}; e.c[f.key] = (e.c[f.key] || 0) + amt; cards++;
           });
           // plan every stack first, then move them all and tidy once (tidying re-keys stacks)
-          const plan = Object.entries(p.tokens || {}).map(([k, t]) => {
+          const plan = Object.entries(f.oppsOnly ? {} : p.tokens || {}).map(([k, t]) => {
             if (!t || !permanentMatches(tokenPerm(t), f.filter)) return null;
             const howMany = f.entered ? (t.fresh?.turnNo === ctx.turnNo ? t.fresh.n : 0) : t.count;
             return howMany ? [k, howMany, counterAmount(f.n, f.key, tokenPerm(t))] : null;
           }).filter(Boolean);
           plan.forEach(([k, howMany, amt]) => { toks += counterTokens(p, k, howMany, f.key, amt, f.entered, true); });
           if (plan.length) tidyTokenStacks(p);
-          if (f.everyone) (ctx.others ||= []).push({ ...f, everyone: false, other: false, src });
+          if (f.everyone) (ctx.others ||= []).push({ ...f, everyone: false, other: false, oppsOnly: false, src });
           if (f.key === "m1m1") { const cre = cards + toks + (f.everyone ? ctx.oppCre || 0 : 0); if (cre) queue.push({ type: "m1m1put", creatures: cre, n: typeof f.n === "number" ? f.n : 1 }); }
           if (cards || toks) {
             ctx.logs.push(`⚙ ${src}: ${f.label} counter${f.n === 1 ? "" : "s"} on ${cards ? `${cards} creature${cards === 1 ? "" : "s"}` : ""}${cards && toks ? " and " : ""}${toks ? `${toks} token${toks === 1 ? "" : "s"}` : ""}${f.entered ? " (entered this turn)" : ""}`);
