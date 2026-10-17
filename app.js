@@ -1,9 +1,9 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, set, get, update, onValue, push, remove, query, orderByChild, endAt } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { firebaseConfig } from "./config.js?v=20261017c";
-import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261017c";
-import { permanentMatches, stationCard, singular } from "./engine.js?v=20261017c";
-import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261017c";
+import { firebaseConfig } from "./config.js?v=20261017d";
+import { playVictory, playKO, unlockAudio, playTurnChime } from "./sounds.js?v=20261017d";
+import { permanentMatches, stationCard, singular } from "./engine.js?v=20261017d";
+import { runEvents, countOf, abilitiesOf, describeAbilities, countsFor, isCreatureToken, noteTokenKind, entersTapped, spellAbility, activatedAbilities, TOKEN_USES, entersWithCounters, matchesSearch, manaValue, countTypes, clearAbilityCaches, entersInstead, activationCondition, suspendOf, winRule, evalWin, pactOf, loseEffect, damageLoses, overloadOf, addlSacOf, drawCount, counterOf, counterMatches, answerKind, staticRules, spellMatches, adjustCost, boardRules, permanentMatches as permMatch, oppPickOf, auraStealOf, devotion, tokenPerm, tokenPT, counterTokens, tidyTokenStacks, blanketLines, staticBuffs, ownKeywords, parseTargetFilter, attachBuff, grantedLand, enchantType, equipCost, sagaChapters, selfBuff, grantedMana, hitTriggers, myriadCount, setTypeAdds, vanishingOf, hasStorm, firebendingOf, foretellOf, isChangeling, changelingHas, bigHitTriggers, crewOf, detectCombos } from "./engine.js?v=20261017d";
 
 // ---------- Settings ----------
 const START_LIFE = 40;
@@ -752,10 +752,10 @@ async function resetGame(code) {
 // Selfless Squire / Willbreaker trigger text (used by the card buttons and the trigger hooks)
 const SQUIRE_RE = /^(?:[^—\n]{1,40} — )?whenever damage that would be dealt to you is prevented, put that many \+1\/\+1 counters on (?:this creature|[^.]+)\.?$/im;
 const WILLB_RE = /^(?:[^—\n]{1,40} — )?whenever a creature an opponent controls becomes the target of a spell or ability you control, gain control of that creature/im;
-const APP_VERSION = "2026.10.17c";
+const APP_VERSION = "2026.10.17d";
 
 // Brand: the clasped tome emblem (original art) and the Triggernomicon wordmark
-const TOME_SVG = `<img class="tome" src="logo-mark.svg?v=20261017c" alt="" aria-hidden="true">`; // Kari's logo: open book, hourglass, bookmark
+const TOME_SVG = `<img class="tome" src="logo-mark.svg?v=20261017d" alt="" aria-hidden="true">`; // Kari's logo: open book, hourglass, bookmark
 const WORDMARK = `<span class="wm-big">T</span>RIGGERNOMICON`;
 const FAN_NOTE = `Triggernomicon is unofficial Fan Content permitted under the <a href="https://company.wizards.com/en/legal/fancontentpolicy" target="_blank" rel="noopener">Fan Content Policy</a>. Not approved/endorsed by Wizards. Portions of the materials used are property of Wizards of the Coast. ©Wizards of the Coast LLC. Card data and images from <a href="https://scryfall.com" target="_blank" rel="noopener">Scryfall</a>.`;
 
@@ -856,11 +856,13 @@ function startHost(code, watch = false) {
     <div id="pendingBar" class="pending-bar" hidden></div>
     <div id="fxBar" class="fx-bar" hidden></div>
     <main id="board" class="board"></main>
+    <div id="seatPanel" class="seat-panel" hidden></div>
     <footer class="tv-foot">
       <div class="tv-actions">
         ${watch ? `<span class="muted">👀 Watching (view only)</span>` : `<button data-a="next" class="btn primary">Next turn ▶</button>
         <button data-a="take-back" class="btn ghost" id="tbBtn" hidden>↶ Undo end turn</button>
-        <button data-a="reset" class="btn ghost">Reset game</button>`}
+        <button data-a="reset" class="btn ghost">Reset game</button>
+        <button data-a="seats" class="btn ghost" id="seatsBtn" title="Take a player out of this game (they can join again with the code)">👥 Seats</button>`}
         <button data-a="sound" class="btn ghost" id="soundBtn">🔇 Sound off</button>
         <button data-a="tvview" class="btn ghost" id="viewBtn" title="Switch the board view">View: ${TV_VIEWS[tvView]}</button>
         <button data-a="tvpics" class="btn ghost" id="picsBtn" title="Artwork only, or the whole card">Pictures: ${TV_PICS[tvPics]}</button>
@@ -924,7 +926,8 @@ function startHost(code, watch = false) {
     logEl.innerHTML = Object.values(room.log || {}).sort((a, b) => b.t - a.t).slice(0, 6)
       .map(l => `<div>${esc(l.text)}</div>`).join("");
   };
-  onValue(ref(db, `rooms/${code}`), snap => { lastRoomSnap = snap; touchRoom(code, snap); renderTv(snap); });
+  let seatOpen = false;
+  onValue(ref(db, `rooms/${code}`), snap => { lastRoomSnap = snap; touchRoom(code, snap); renderTv(snap); if (seatOpen) renderSeats(); });
   setTimeout(() => cleanupRooms(code), 5000);
   { let pend = null; tvRerender = () => { clearTimeout(pend); pend = setTimeout(() => { if (lastRoomSnap && tvCards) renderTv(lastRoomSnap); }, 300); }; } // token art arrived
   window.addEventListener("resize", () => { if (tvCards) fitTvCards(board); });
@@ -939,7 +942,25 @@ function startHost(code, watch = false) {
     if (a === "next") nextTurn(code);
     if (a === "take-back") takeBackTurn(code);
     if (a === "reset" && confirm("Reset life, counters, battlefields, tokens and effects for everyone?")) resetGame(code);
+    if (a === "seats") { seatOpen = !seatOpen; renderSeats(); }
+    if (a === "seat-rm") { const id = e.target.closest("[data-id]")?.dataset.id; if (id) removeFromTable(code, id); }
   };
+  // 👥 switching players on game night: take someone out of their seat (not a ban: they can join again with the code)
+  function renderSeats() {
+    const el = document.getElementById("seatPanel"); if (!el) return;
+    el.hidden = !seatOpen; if (!seatOpen) return;
+    const room = lastRoomSnap?.val() || {}, ps = seated(room);
+    el.innerHTML = `<div class="seat-head"><b>Seats</b><span class="muted">Remove a player to free their seat. They can join again with code ${esc(code)}.</span><button class="btn ghost small" data-a="seats">Close</button></div>
+      <div class="seat-list">${ps.length ? ps.map(o => `<div class="seat-row" style="--pc:${esc(o.color || "#888")}"><span class="seat-dot"></span><b>${esc(o.name)}</b>${o.id === room.turn ? `<span class="muted">· their turn</span>` : ""}<button class="btn small" data-a="seat-rm" data-id="${esc(o.id)}">Remove from table</button></div>`).join("") : `<span class="muted">Nobody is seated.</span>`}</div>`;
+  }
+  async function removeFromTable(code, id) {
+    const room = lastRoomSnap?.val() || {}, o = room.players?.[id]; if (!o) return;
+    if (!confirm(`Take ${o.name} out of this game?\n\nTheir life, board and cards on this table are cleared. They can join again with the code.`)) return;
+    if (room.turn === id && seated(room).length > 1) await nextTurn(code); // don't leave the turn on an empty seat
+    await update(ref(db, `rooms/${code}`), { [`players/${id}`]: null, [`notes/${id}`]: null, [`orders/${id}`]: null });
+    if (room.pending?.waiting?.[id]) await update(ref(db, `rooms/${code}/pending/waiting`), { [id]: null });
+    await logTo(code, `👥 ${o.name} was removed from the table`);
+  }
 }
 
 // Commander damage entries: key "<opponentId>~<commander>" (or just "<opponentId>" from older games)
